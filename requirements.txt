@@ -5,4 +5,5 @@ numpy
 trimesh
 imgui[glfw]
 Pillow
-pyglm
+pandas
+opencv-python
