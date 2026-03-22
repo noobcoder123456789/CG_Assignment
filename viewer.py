@@ -17,7 +17,7 @@ class Viewer:
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL.GL_TRUE)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.RESIZABLE, False)
+        glfw.window_hint(glfw.RESIZABLE, True)
         glfw.window_hint(glfw.DEPTH_BITS, 16)
         glfw.window_hint(glfw.DOUBLEBUFFER, True)
 
@@ -34,33 +34,26 @@ class Viewer:
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthFunc(GL.GL_LESS)
 
-        # 1. Khởi tạo ImGui
         imgui.create_context()
         self.gui_renderer = GlfwRenderer(self.win)
         self.drawables = []
         self.selected_shape = "None"
 
-        # 2. Bắt buộc set lại Callbacks SAU KHI khởi tạo GlfwRenderer
         glfw.set_key_callback(self.win, self.on_key)
         glfw.set_cursor_pos_callback(self.win, self.on_mouse_move)
         glfw.set_scroll_callback(self.win, self.on_scroll)
         glfw.set_mouse_button_callback(self.win, self.on_mouse_button)
         glfw.set_char_callback(self.win, self.on_char)
 
-    # --- CÁC HÀM XỬ LÝ SỰ KIỆN (ĐÃ FIX LỖI TRANH CHẤP) ---
     def on_mouse_button(self, win, button, action, mods):
-        # Trả event click cho ImGui xử lý
         self.gui_renderer.mouse_callback(win, button, action, mods)
 
     def on_char(self, win, char):
-        # Trả event gõ chữ cho ImGui
         self.gui_renderer.char_callback(win, char)
 
     def on_key(self, win, key, scancode, action, mods):
-        # Cho ImGui nhận phím trước
         self.gui_renderer.keyboard_callback(win, key, scancode, action, mods)
         
-        # Nếu đang gõ trong Menu -> Dừng, không kích hoạt phím 3D
         if imgui.get_io().want_capture_keyboard:
             return
 
@@ -78,15 +71,12 @@ class Viewer:
                 drawable.key_handler(key)
 
     def on_mouse_move(self, win, x_pos, y_pos):
-        # LUÔN LUÔN cập nhật tọa độ chuột ĐẦU TIÊN
         old = self.mouse
         self.mouse = (x_pos, glfw.get_window_size(win)[1] - y_pos)
 
-        # Nếu chuột đang chỉ vào Menu -> Không xoay Trackball
         if imgui.get_io().want_capture_mouse:
             return
 
-        # Nắm kéo xoay mượt mà
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
             self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
 
@@ -94,10 +84,8 @@ class Viewer:
             self.trackball.pan(old, self.mouse)
 
     def on_scroll(self, win, x_offset, y_offset):
-        # Cho ImGui nhận con lăn trước
         self.gui_renderer.scroll_callback(win, x_offset, y_offset)
         
-        # Nếu đang cuộn trong Menu -> Không zoom Trackball
         if imgui.get_io().want_capture_mouse:
             return
             
@@ -106,7 +94,6 @@ class Viewer:
     def add(self, *drawables):
         self.drawables.extend(drawables)
 
-    # --- HÀM VẼ GIAO DIỆN CHUẨN SKETCHUP ---
     def render_ui(self):
         imgui.new_frame()
         
@@ -159,10 +146,11 @@ class Viewer:
     def run(self):
         while not glfw.window_should_close(self.win):
             self.gui_renderer.process_inputs()
+            win_size = glfw.get_window_size(self.win)
+            GL.glViewport(0, 0, win_size[0], win_size[1])
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
             self.render_ui()
-            win_size = glfw.get_window_size(self.win)
             view = self.trackball.view_matrix()
             projection = self.trackball.projection_matrix(win_size)
 
