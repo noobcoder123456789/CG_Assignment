@@ -118,109 +118,98 @@ class Viewer:
         self.drawables.extend(drawables)
 
     def render_ui(self):
-        _object_id = 0
+        _get_object_id = 0
 
         def get_object_id():
-            nonlocal _object_id
-            _object_id += 1
-            return _object_id
+            nonlocal _get_object_id
+            _get_object_id += 1
+            return _get_object_id
 
         imgui.new_frame()
         
         imgui.set_next_window_position(0, 0)
-        imgui.set_next_window_size(160, 800)
-        flags = imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE
-        imgui.begin("Toolbar", flags=flags)
-
-        imgui.text("--- 3D OBJECTS ---")
-        if imgui.button(f"{get_object_id()}. Cone"):
-            self.add(ConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Cube"):
-            self.add(CubeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Cylinder"):
-            self.add(CylinderObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Prism"):
-            self.add(PrismObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+        imgui.set_next_window_size(180, glfw.get_window_size(self.win)[1])
         
-        imgui.spacing()
-        imgui.text("Sphere (3 methods):")
-        if imgui.button(f"{get_object_id()}. Sphere (Lat-Long)"):
-            self.add(CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL, method="lat-long").setup())
-
-        if imgui.button(f"{get_object_id()}. Sphere (Subdivision)"):
-            self.add(TetrahedronSphereObject(VERTEX_GLSL, FRAGMENT_GLSL, method="subdivision").setup())
-
-        if imgui.button(f"{get_object_id()}. Sphere (Grid Project)"):
-            self.add(CoordinatesSphereObject(VERTEX_GLSL, FRAGMENT_GLSL, method="grid").setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Tetrahedrone"):
-            self.add(TetrahedronObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Torus"):
-            self.add(TetrahedronObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Truncated Cone"):
-            self.add(TruncatedConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.separator()
-        imgui.text("--- 2D OBJECTS ---")
-        if imgui.button(f"{get_object_id()}. Arrow"):
-            self.add(ArrowObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Circle"):
-            self.add(CircleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Ellipse"):
-            self.add(EllipseObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Hexagon"):
-            self.add(HexagonObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Pentagon"):
-            self.add(PentagonObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Rectangle"):
-            self.add(RectangleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Star"):
-            self.add(StarObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Trapezium"):
-            self.add(TrapeziumObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.spacing()
-        if imgui.button(f"{get_object_id()}. Triangle"):
-            self.add(TriangleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
-
-        imgui.separator()
-        imgui.spacing()
+        imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 0.0)
+        imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (8, 10))
         
-        imgui.push_style_color(imgui.COLOR_BUTTON, 0.8, 0.2, 0.2, 1.0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.9, 0.3, 0.3, 1.0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 0.4, 0.4, 1.0)
-        
-        if imgui.button("DELETE ALL!"):
-            self.drawables = []
+        imgui.begin("Dashboard", flags=imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE)
+
+        if imgui.collapsing_header("3D OBJECTS", imgui.TREE_NODE_DEFAULT_OPEN):
+            if imgui.selectable(f"{get_object_id()}. Cone")[0]:
+                self.add(ConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Cube")[0]:
+                self.add(CubeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Cylinder")[0]:
+                self.add(CylinderObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Prism")[0]:
+                self.add(PrismObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
             
-        imgui.pop_style_color(3)
+            if imgui.tree_node("Sphere Methods"):
+                methods = ["Lat-Long", "Subdivision", "Grid Project"]
+                for label in methods:
+                    opened, selected = imgui.selectable(label)
+                    if opened:
+                        if label == "Lat-Long":
+                            self.add(CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+                        elif label == "Subdivision":
+                            self.add(TetrahedronSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+                        else:
+                            self.add(CoordinatesSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+                    if imgui.is_item_hovered():
+                        imgui.set_tooltip(f"Create Sphere using {label} method")
+                imgui.tree_pop()
+
+            if imgui.selectable(f"{get_object_id()}. Tetrahedrone")[0]:
+                self.add(TetrahedronObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Torus")[0]:
+                self.add(TorusObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Truncated Cone")[0]:
+                self.add(TruncatedConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.collapsing_header("2D OBJECTS"):
+            if imgui.selectable(f"{get_object_id()}. Arrow")[0]:
+                self.add(ArrowObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Circle")[0]:
+                self.add(CircleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Ellipse")[0]:
+                self.add(EllipseObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Hexagon")[0]:
+                self.add(HexagonObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Pentagon")[0]:
+                self.add(PentagonObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Rectangle")[0]:
+                self.add(RectangleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Star")[0]:
+                self.add(StarObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Trapezium")[0]:
+                self.add(TrapeziumObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+            if imgui.selectable(f"{get_object_id()}. Triangle")[0]:
+                self.add(TriangleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.set_cursor_pos_y(glfw.get_window_size(self.win)[1] - 50)
+        imgui.separator()
+        if imgui.button("CLEAR SCENE", width=160):
+            self.drawables = []
 
         imgui.end()
+        imgui.pop_style_var(2)
+        
         imgui.render()
         self.gui_renderer.render(imgui.get_draw_data())
 
