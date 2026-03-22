@@ -5,8 +5,31 @@ import glfw, sys, os
 import OpenGL.GL as GL
 from itertools import cycle
 from libs.transform import Trackball
-from object.threeD.sphere import CubeSphereObject as SphereObject
-from object.threeD.cube import CubeObject
+
+from object.twoD.arrow import *
+from object.twoD.circle import *
+from object.twoD.ellipse import *
+from object.twoD.hexagon import *
+from object.twoD.pentagon import *
+from object.twoD.rectangle import *
+from object.twoD.star import *
+from object.twoD.trapezium import *
+from object.twoD.triangle import *
+
+from object.threeD.cone import *
+from object.threeD.cube import *
+from object.threeD.cylinder import *
+from object.threeD.function_surface import *
+from object.threeD.mesh_object import *
+from object.threeD.prism import *
+from object.threeD.sphere import *
+from object.threeD.tetrahedron import *
+from object.threeD.torus import *
+from object.threeD.truncated_cone import *
+
+
+VERTEX_GLSL = "./shader/phong.vert"
+FRAGMENT_GLSL = "./shader/phong.frag"
 
 
 class Viewer:
@@ -95,37 +118,95 @@ class Viewer:
         self.drawables.extend(drawables)
 
     def render_ui(self):
+        _object_id = 0
+
+        def get_object_id():
+            nonlocal _object_id
+            _object_id += 1
+            return _object_id
+
         imgui.new_frame()
         
         imgui.set_next_window_position(0, 0)
-        imgui.set_next_window_size(250, 800)
+        imgui.set_next_window_size(160, 800)
         flags = imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE
-        imgui.begin("Thanh Cong Cu", flags=flags)
+        imgui.begin("Toolbar", flags=flags)
 
-        imgui.text("--- KHOI 3D ---")
-        if imgui.button("1. Lap Phuong (Cube)"):
-            self.add(CubeObject("./shader/phong.vert", "./shader/phong.frag").setup())
+        imgui.text("--- 3D OBJECTS ---")
+        if imgui.button(f"{get_object_id()}. Cone"):
+            self.add(ConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Cube"):
+            self.add(CubeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Cylinder"):
+            self.add(CylinderObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Prism"):
+            self.add(PrismObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
         
         imgui.spacing()
-        imgui.text("Mat Cau (3 Phuong phap):")
-        if imgui.button("2. Sphere (Lat-Long)"):
-            self.add(SphereObject("./shader/phong.vert", "./shader/phong.frag", method="lat-long").setup())
+        imgui.text("Sphere (3 methods):")
+        if imgui.button(f"{get_object_id()}. Sphere (Lat-Long)"):
+            self.add(CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL, method="lat-long").setup())
 
-        if imgui.button("3. Sphere (Subdivision)"):
-            self.add(SphereObject("./shader/phong.vert", "./shader/phong.frag", method="subdivision").setup())
+        if imgui.button(f"{get_object_id()}. Sphere (Subdivision)"):
+            self.add(TetrahedronSphereObject(VERTEX_GLSL, FRAGMENT_GLSL, method="subdivision").setup())
 
-        if imgui.button("4. Sphere (Grid Project)"):
-            self.add(SphereObject("./shader/phong.vert", "./shader/phong.frag", method="grid").setup())
+        if imgui.button(f"{get_object_id()}. Sphere (Grid Project)"):
+            self.add(CoordinatesSphereObject(VERTEX_GLSL, FRAGMENT_GLSL, method="grid").setup())
 
         imgui.spacing()
-        if imgui.button("5. Non cut (Truncated Cone)"):
-            from object.threeD.truncated_cone import TruncatedConeObject
-            self.add(TruncatedConeObject("./shader/phong.vert", "./shader/phong.frag").setup())
+        if imgui.button(f"{get_object_id()}. Tetrahedrone"):
+            self.add(TetrahedronObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Torus"):
+            self.add(TetrahedronObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Truncated Cone"):
+            self.add(TruncatedConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
 
         imgui.separator()
-        imgui.text("--- HINH 2D ---")
-        if imgui.button("6. Ngoi Sao (Star)"):
-            pass
+        imgui.text("--- 2D OBJECTS ---")
+        if imgui.button(f"{get_object_id()}. Arrow"):
+            self.add(ArrowObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Circle"):
+            self.add(CircleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Ellipse"):
+            self.add(EllipseObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Hexagon"):
+            self.add(HexagonObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Pentagon"):
+            self.add(PentagonObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Rectangle"):
+            self.add(RectangleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Star"):
+            self.add(StarObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Trapezium"):
+            self.add(TrapeziumObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+
+        imgui.spacing()
+        if imgui.button(f"{get_object_id()}. Triangle"):
+            self.add(TriangleObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
 
         imgui.separator()
         imgui.spacing()
@@ -134,7 +215,7 @@ class Viewer:
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.9, 0.3, 0.3, 1.0)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 0.4, 0.4, 1.0)
         
-        if imgui.button("XOA TAT CA CANH"):
+        if imgui.button("DELETE ALL!"):
             self.drawables = []
             
         imgui.pop_style_color(3)
