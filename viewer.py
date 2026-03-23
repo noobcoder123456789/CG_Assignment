@@ -16,6 +16,7 @@ from object.twoD.star import *
 from object.twoD.trapezium import *
 from object.twoD.triangle import *
 
+from object.threeD.axis import *
 from object.threeD.cone import *
 from object.threeD.cube import *
 from object.threeD.cylinder import *
@@ -59,7 +60,8 @@ class Viewer:
 
         imgui.create_context()
         self.gui_renderer = GlfwRenderer(self.win)
-        self.drawables = []
+        self.axis = AxisObject().setup()
+        self.drawables = [self.axis]
         self.selected_shape = "None"
         self.current_tool = "orbit"
         self.selected_obj_idx = -1
@@ -211,6 +213,7 @@ class Viewer:
             if imgui.selectable(f"{get_object_id()}. Prism")[0]:
                 self.add(PrismObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
             
+            imgui.selectable(f"{get_object_id()}. Sphere")[0]
             if imgui.tree_node("Sphere Methods"):
                 methods = ["Lat-Long", "Subdivision", "Grid Project"]
                 for label in methods:
@@ -268,7 +271,7 @@ class Viewer:
         imgui.set_cursor_pos_y(glfw.get_window_size(self.win)[1] - 50)
         imgui.separator()
         if imgui.button("CLEAR SCENE", width=160):
-            self.drawables = []
+            self.drawables = [self.axis]
 
         imgui.end()
         imgui.pop_style_var(2)
@@ -281,9 +284,39 @@ class Viewer:
         imgui.separator()
         
         for i, obj in enumerate(self.drawables):
+            if obj.__class__.__name__ == "AxisObject":
+                continue
+
             opened, selected = imgui.selectable(f"Vat the {i}: {obj.__class__.__name__}", self.selected_obj_idx == i)
             if opened:
                 self.selected_obj_idx = i
+
+        imgui.spacing()
+        
+        if 0 <= self.selected_obj_idx < len(self.drawables):
+            obj = self.drawables[self.selected_obj_idx]
+            
+            imgui.separator()
+            imgui.spacing()
+            imgui.text("MODES:")
+            
+            modes = ["(A) Flat Color", "(B) Vertex Color", "(C) Phong Shading", "(D) Texture Only", "(E) Combined"]
+            changed, new_mode = imgui.combo("Mode", obj.render_mode, modes)
+            if changed:
+                obj.render_mode = new_mode
+                
+            if obj.render_mode == 0:
+                changed_col, obj.flat_color = imgui.color_edit3("Pick Color", *obj.flat_color)
+
+            imgui.spacing()
+            changed_wire, obj.is_wireframe = imgui.checkbox("Wireframe", obj.is_wireframe)
+
+            imgui.spacing()
+            if imgui.button("DELETE OBJECT"):
+                self.drawables.pop(self.selected_obj_idx)
+                self.selected_obj_idx = -1
+        else:
+            imgui.text_colored("Please pick one object", 0.6, 0.6, 0.6, 1.0)
                 
         imgui.end()
         

@@ -4,10 +4,10 @@ import OpenGL.GL as GL
 from libs.buffer import *
 from libs.shader import *
 from libs.transform import *
-from . import Object2D
+from .. import Object
 
 
-class PentagonObject(Object2D):
+class PentagonObject(Object):
     def __init__(self, vert_shader, frag_shader):
         super().__init__(vert_shader, frag_shader)
 

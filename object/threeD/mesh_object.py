@@ -1,9 +1,9 @@
 import trimesh
 import numpy as np
 import OpenGL.GL as GL
-from . import Object3D
+from .. import Object
 
-class MeshObject(Object3D):
+class MeshObject(Object):
     def __init__(self, vert_shader, frag_shader, file_path, color=[0.7, 0.7, 0.7]):
         super().__init__(vert_shader, frag_shader)
         

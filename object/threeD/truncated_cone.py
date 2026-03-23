@@ -4,10 +4,10 @@ import OpenGL.GL as GL
 from libs.shader import *
 from libs.buffer import *
 from libs.transform import sincos
-from . import Object3D
+from .. import Object
 
 
-class TruncatedConeObject(Object3D):
+class TruncatedConeObject(Object):
     def __init__(self, vert_shader, frag_shader, radius_small=2.0, radius_big=4.0):
         super().__init__(vert_shader, frag_shader)
 

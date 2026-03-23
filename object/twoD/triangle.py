@@ -1,10 +1,10 @@
 import glfw
 import numpy as np
 import OpenGL.GL as GL
-from . import Object2D
+from .. import Object
 
 
-class TriangleObject(Object2D):
+class TriangleObject(Object):
     def __init__(self, vert_shader, frag_shader):
         super().__init__(vert_shader, frag_shader)
 

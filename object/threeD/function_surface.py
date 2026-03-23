@@ -1,8 +1,8 @@
 import numpy as np
 import OpenGL.GL as GL
-from . import Object3D
+from .. import Object
 
-class FunctionSurface(Object3D):
+class FunctionSurface(Object):
     def __init__(self, vert_shader, frag_shader, func, x_range=(-5, 5), y_range=(-5, 5), resolution=50):
         super().__init__(vert_shader, frag_shader)
         

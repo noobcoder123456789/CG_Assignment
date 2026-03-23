@@ -2,10 +2,10 @@ import numpy as np
 import OpenGL.GL as GL
 from libs.shader import *
 from libs.buffer import *
-from . import Object3D
+from .. import Object
 
 
-class TetrahedronSphereObject(Object3D):
+class TetrahedronSphereObject(Object):
     def __init__(self, vert_shader, frag_shader):
         super().__init__(vert_shader, frag_shader)
 
@@ -91,7 +91,7 @@ class TetrahedronSphereObject(Object3D):
         GL.glDrawElements(GL.GL_TRIANGLES, self.indices.shape[0], GL.GL_UNSIGNED_INT, None)
 
 
-class CubeSphereObject(Object3D):
+class CubeSphereObject(Object):
     def __init__(self, vert_shader, frag_shader):
         super().__init__(vert_shader, frag_shader)
 
@@ -152,7 +152,7 @@ class CubeSphereObject(Object3D):
         GL.glDrawElements(GL.GL_TRIANGLES, self.indices.shape[0], GL.GL_UNSIGNED_INT, None)
 
 
-class CoordinatesSphereObject(Object3D):
+class CoordinatesSphereObject(Object):
     def __init__(self, vert_shader, frag_shader):
         super().__init__(vert_shader, frag_shader)
 

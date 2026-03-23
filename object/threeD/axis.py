@@ -1,13 +1,13 @@
 import OpenGL.GL as GL
 import numpy as np
-from . import Object3D
+from .. import Object
 
 
 VERTEX_GLSL = "./shader/axis.vert"
 FRAGMENT_GLSL = "./shader/axis.frag"
 
 
-class AxisObject(Object3D):
+class AxisObject(Object):
     def __init__(self, size=10.0):
         super().__init__(VERTEX_GLSL, FRAGMENT_GLSL)
         self.size = size

@@ -2,10 +2,10 @@ import glfw
 import numpy as np
 import OpenGL.GL as GL
 from libs.buffer import *
-from . import Object2D
+from .. import Object
 
 
-class TrapeziumObject(Object2D):
+class TrapeziumObject(Object):
     def __init__(self, vert_shader, frag_shader):
         super().__init__(vert_shader, frag_shader)
 
