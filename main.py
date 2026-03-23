@@ -4,9 +4,14 @@ from object.threeD.mesh_object import MeshObject as Object
 from object.threeD.axis import *
 
 
+VERTEX_GLSL = "./shader/vertex.vert"
+FRAGMENT_GLSL = "./shader/fragment.frag"
+OBJ_PATH = "./assets/temp.obj"
+
+
 def main():
     viewer = Viewer(800, 800)
-    model = Object("./shader/phong.vert", "./shader/phong.frag", "./assets/temp.obj", color=[1.0, 0.5, 0.0]).setup()
+    model = Object(VERTEX_GLSL, FRAGMENT_GLSL, OBJ_PATH, color=[1.0, 0.5, 0.0]).setup()
     axis = AxisObject().setup()
     viewer.add(axis, model)
     viewer.run()

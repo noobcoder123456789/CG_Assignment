@@ -28,8 +28,8 @@ from object.threeD.torus import *
 from object.threeD.truncated_cone import *
 
 
-VERTEX_GLSL = "./shader/phong.vert"
-FRAGMENT_GLSL = "./shader/phong.frag"
+VERTEX_GLSL = "./shader/vertex.vert"
+FRAGMENT_GLSL = "./shader/fragment.frag"
 
 
 class Viewer:

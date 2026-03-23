@@ -16,8 +16,12 @@ class Object3D(ABC):
         self.translation = [0.0, 0.0, 0.0]
         self.rotation = [0.0, 0.0, 0.0]
         self.scale = [1.0, 1.0, 1.0]
-        
         self.model_matrix = np.eye(4, dtype=np.float32)
+        
+        self.render_mode = 2 
+        self.flat_color = np.array([0.2, 0.3, 0.2], dtype=np.float32)
+        self.is_wireframe = False
+        self.texture_file = None
 
         self.vao = VAO()
         self.shader = Shader(vert_shader, frag_shader)
@@ -46,7 +50,14 @@ class Object3D(ABC):
         if 'gouraud' in self.vert_shader.lower() or 'phong' in self.vert_shader.lower():
             self.vao.add_vbo(2, self.normals, ncomponents=3, stride=0, offset=None)
 
+        if hasattr(self, 'uvs') and self.uvs is not None:
+            self.vao.add_vbo(3, self.uvs, ncomponents=2, stride=0, offset=None)
+
         self.vao.add_ebo(self.indices)
+
+        if self.texture_file is not None:
+            self.uma.setup_texture("u_Texture", self.texture_file)
+
         return self
     
     def draw_preprocess(self, projection, view, model):
@@ -56,11 +67,18 @@ class Object3D(ABC):
 
         self.uma.upload_uniform_matrix4fv(projection, 'projection', True)
         self.uma.upload_uniform_matrix4fv(modelview, 'modelview', True)
+        self.uma.upload_uniform_scalar1i(self.render_mode, "u_RenderMode")
+        self.uma.upload_uniform_vector3fv(self.flat_color, "u_FlatColor")
 
         if 'gouraud' in self.vert_shader.lower():
             self.lighting.setup_gouraud()
         elif 'phong' in self.vert_shader.lower():
             self.lighting.setup_phong()
+
+        if self.is_wireframe:
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+        else:
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
         self.vao.activate()
     
