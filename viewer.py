@@ -61,6 +61,7 @@ class Viewer:
         self.gui_renderer = GlfwRenderer(self.win)
         self.drawables = []
         self.selected_shape = "None"
+        self.current_tool = "orbit"
         self.selected_obj_idx = -1
 
         glfw.set_key_callback(self.win, self.on_key)
@@ -102,7 +103,10 @@ class Viewer:
             return
 
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
-            self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            if self.current_tool == "orbit":
+                self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            elif self.current_tool == "pan":
+                self.trackball.pan(old, self.mouse)
 
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
@@ -135,6 +139,20 @@ class Viewer:
         imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (8, 10))
         
         imgui.begin("Dashboard", flags=imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE)
+
+        if imgui.collapsing_header("CAMERA TOOLS", imgui.TREE_NODE_DEFAULT_OPEN):
+            if imgui.radio_button("Orbit", self.current_tool == "orbit"):
+                self.current_tool = "orbit"
+            if imgui.is_item_hovered():
+                imgui.set_tooltip("Navigate by reorienting the camera view.")
+
+            if imgui.radio_button("Pan", self.current_tool == "pan"):
+                self.current_tool = "pan"
+            if imgui.is_item_hovered():
+                imgui.set_tooltip("Move your view horizontally or vertically.")
+                
+        imgui.spacing()
+        imgui.separator()
 
         if imgui.collapsing_header("3D OBJECTS", imgui.TREE_NODE_DEFAULT_OPEN):
             if imgui.selectable(f"{get_object_id()}. Cone")[0]:
