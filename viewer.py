@@ -96,6 +96,9 @@ class Viewer:
                 drawable.key_handler(key)
 
     def on_mouse_move(self, win, x_pos, y_pos):
+        dx = x_pos - self.mouse[0]
+        dy = (glfw.get_window_size(win)[1] - y_pos) - self.mouse[1]
+        
         old = self.mouse
         self.mouse = (x_pos, glfw.get_window_size(win)[1] - y_pos)
 
@@ -105,8 +108,21 @@ class Viewer:
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
             if self.current_tool == "orbit":
                 self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+            
             elif self.current_tool == "pan":
                 self.trackball.pan(old, self.mouse)
+                
+            elif self.current_tool == "move" and self.selected_obj_idx != -1:
+                obj = self.drawables[self.selected_obj_idx]
+                obj.translation[0] += dx / 100.0
+                obj.translation[1] += dy / 100.0
+                obj.update_model_matrix()
+                
+            elif self.current_tool == "rotate" and self.selected_obj_idx != -1:
+                obj = self.drawables[self.selected_obj_idx]
+                obj.rotation[0] += dy 
+                obj.rotation[1] += dx
+                obj.update_model_matrix()
 
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
             self.trackball.pan(old, self.mouse)
@@ -140,16 +156,35 @@ class Viewer:
         
         imgui.begin("Dashboard", flags=imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE)
 
-        if imgui.collapsing_header("CAMERA TOOLS", imgui.TREE_NODE_DEFAULT_OPEN):
+        if imgui.collapsing_header("TOOLS", imgui.TREE_NODE_DEFAULT_OPEN):
+            imgui.text("--- View ---")
+            
             if imgui.radio_button("Orbit", self.current_tool == "orbit"):
                 self.current_tool = "orbit"
+            
             if imgui.is_item_hovered():
-                imgui.set_tooltip("Navigate by reorienting the camera view.")
-
+                imgui.set_tooltip("Navigate by reorienting the camera view")
+            
             if imgui.radio_button("Pan", self.current_tool == "pan"):
                 self.current_tool = "pan"
+
             if imgui.is_item_hovered():
-                imgui.set_tooltip("Move your view horizontally or vertically.")
+                imgui.set_tooltip("Move your view horizontally or vertically")
+                
+            imgui.spacing()
+            imgui.text("--- Transform ---")
+            
+            if imgui.radio_button("Move", self.current_tool == "move"):
+                self.current_tool = "move"
+
+            if imgui.is_item_hovered():
+                imgui.set_tooltip("Move object")
+            
+            if imgui.radio_button("Rotate", self.current_tool == "rotate"):
+                self.current_tool = "rotate"
+
+            if imgui.is_item_hovered():
+                imgui.set_tooltip("Rotate object")
                 
         imgui.spacing()
         imgui.separator()
@@ -237,6 +272,20 @@ class Viewer:
 
         imgui.end()
         imgui.pop_style_var(2)
+
+        imgui.set_next_window_position(180, 0)
+        imgui.set_next_window_size(160, glfw.get_window_size(self.win)[1])
+        imgui.begin("Inspector", flags=imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE)
+        
+        imgui.text("OBJECT LIST:")
+        imgui.separator()
+        
+        for i, obj in enumerate(self.drawables):
+            opened, selected = imgui.selectable(f"Vat the {i}: {obj.__class__.__name__}", self.selected_obj_idx == i)
+            if opened:
+                self.selected_obj_idx = i
+                
+        imgui.end()
         
         imgui.render()
         self.gui_renderer.render(imgui.get_draw_data())
