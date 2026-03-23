@@ -61,6 +61,7 @@ class Viewer:
         self.gui_renderer = GlfwRenderer(self.win)
         self.drawables = []
         self.selected_shape = "None"
+        self.selected_obj_idx = -1
 
         glfw.set_key_callback(self.win, self.on_key)
         glfw.set_cursor_pos_callback(self.win, self.on_mouse_move)
@@ -140,7 +141,16 @@ class Viewer:
                 self.add(ConeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
 
             if imgui.selectable(f"{get_object_id()}. Cube")[0]:
-                self.add(CubeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
+                cube = CubeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
+                translation_matrix = np.array([
+                    [1.0, 0.0, 0.0, 3.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0]
+                ], dtype=np.float32)
+                
+                cube.model_matrix = translation_matrix.T
+                self.add(cube)
 
             if imgui.selectable(f"{get_object_id()}. Cylinder")[0]:
                 self.add(CylinderObject(VERTEX_GLSL, FRAGMENT_GLSL).setup())
@@ -225,7 +235,7 @@ class Viewer:
             projection = self.trackball.projection_matrix(win_size)
 
             for drawable in self.drawables:
-                drawable.draw(projection, view, None)
+                drawable.draw(projection, view, drawable.model_matrix)
 
             glfw.swap_buffers(self.win)
             glfw.poll_events()

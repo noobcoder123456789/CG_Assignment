@@ -12,11 +12,43 @@ class Object3D(ABC):
     def __init__(self, vert_shader, frag_shader):
         self.vert_shader = vert_shader
         self.frag_shader = frag_shader
+        
+        self.translation = [0.0, 0.0, 0.0]
+        self.rotation = [0.0, 0.0, 0.0]
+        self.scale = [1.0, 1.0, 1.0]
+        
+        self.model_matrix = np.eye(4, dtype=np.float32)
 
         self.vao = VAO()
         self.shader = Shader(vert_shader, frag_shader)
         self.uma = UManager(self.shader)
         self.lighting = LightingManager(self.uma)
+
+    def update_model_matrix(self):
+        tx, ty, tz = self.translation
+        rx, ry, rz = np.radians(self.rotation)
+        sx, sy, sz = self.scale
+
+        mat_t = np.array([
+            [1, 0, 0, tx],
+            [0, 1, 0, ty],
+            [0, 0, 1, tz],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+        mat_rx = np.array([[1, 0, 0, 0], [0, np.cos(rx), -np.sin(rx), 0], [0, np.sin(rx), np.cos(rx), 0], [0, 0, 0, 1]], dtype=np.float32)
+        mat_ry = np.array([[np.cos(ry), 0, np.sin(ry), 0], [0, 1, 0, 0], [-np.sin(ry), 0, np.cos(ry), 0], [0, 0, 0, 1]], dtype=np.float32)
+        mat_rz = np.array([[np.cos(rz), -np.sin(rz), 0, 0], [np.sin(rz), np.cos(rz), 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+        mat_r = mat_rz @ mat_ry @ mat_rx
+
+        mat_s = np.array([
+            [sx, 0, 0, 0],
+            [0, sy, 0, 0],
+            [0, 0, sz, 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+        self.model_matrix = (mat_t @ mat_r @ mat_s).T
 
     def setup(self):
         self.vao.add_vbo(0, self.vertices, ncomponents=3, stride=0, offset=None)
@@ -31,7 +63,7 @@ class Object3D(ABC):
     def draw_preprocess(self, projection, view, model):
         GL.glUseProgram(self.shader.render_idx)
 
-        modelview = view
+        modelview = view @ self.model_matrix
 
         self.uma.upload_uniform_matrix4fv(projection, 'projection', True)
         self.uma.upload_uniform_matrix4fv(modelview, 'modelview', True)
