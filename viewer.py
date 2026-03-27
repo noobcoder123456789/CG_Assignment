@@ -29,10 +29,6 @@ from object.threeD.torus import *
 from object.threeD.truncated_cone import *
 
 
-VERTEX_GLSL = "./shader/vertex.vert"
-FRAGMENT_GLSL = "./shader/fragment.frag"
-
-
 class Viewer:
     def __init__(self, width=800, height=800):
         self.fill_modes = cycle([GL.GL_LINE, GL.GL_POINT, GL.GL_FILL])
@@ -296,17 +292,17 @@ class Viewer:
         if 0 <= self.selected_obj_idx < len(self.drawables):
             obj = self.drawables[self.selected_obj_idx]
             
-            imgui.separator()
-            imgui.spacing()
-            imgui.text("MODES:")
+            # imgui.separator()
+            # imgui.spacing()
+            # imgui.text("MODES:")
             
-            modes = ["(A) Flat Color", "(B) Vertex Color", "(C) Phong Shading", "(D) Texture Only", "(E) Combined"]
-            changed, new_mode = imgui.combo("Mode", obj.render_mode, modes)
-            if changed:
-                obj.render_mode = new_mode
+            # modes = ["(A) Flat Color", "(B) Vertex Color", "(C) Phong Shading"]
+            # changed, new_mode = imgui.combo("Mode", obj.render_mode, modes)
+            # if changed:
+            #     obj.render_mode = new_mode
                 
-            if obj.render_mode == 0:
-                changed_col, obj.flat_color = imgui.color_edit3("Pick Color", *obj.flat_color)
+            # if obj.render_mode == 0:
+            #     changed_col, obj.flat_color = imgui.color_edit3("Pick Color", *obj.flat_color)
 
             imgui.spacing()
             changed_wire, obj.is_wireframe = imgui.checkbox("Wireframe", obj.is_wireframe)

@@ -10,8 +10,13 @@ from libs.lighting import LightingManager
 
 class Object(ABC):
     def __init__(self, vert_shader, frag_shader):
-        self.vert_shader = vert_shader
-        self.frag_shader = frag_shader
+        self.main_shaders = (vert_shader, frag_shader)
+
+        self.shaders = {
+            "flat": Shader("./shader/vertex.vert", "./shader/fragment.frag"),
+            "phong": Shader("./shader/phong.vert", "./shader/phong.frag"),
+            "gouraud": Shader("./shader/gouraud.vert", "./shader/gouraud.frag")
+        }
         
         self.translation = [0.0, 0.0, 0.0]
         self.rotation = [0.0, 0.0, 0.0]
@@ -21,7 +26,7 @@ class Object(ABC):
         self.render_mode = 2 
         self.flat_color = np.array([0.2, 0.3, 0.2], dtype=np.float32)
         self.is_wireframe = False
-        self.texture_file = None
+        self.texture_file = "./assets/chair.jpg"
 
         self.vao = VAO()
         self.shader = Shader(vert_shader, frag_shader)
@@ -47,7 +52,7 @@ class Object(ABC):
         self.vao.add_vbo(0, self.vertices, ncomponents=3, stride=0, offset=None)
         self.vao.add_vbo(1, self.colors, ncomponents=3, stride=0, offset=None)
 
-        if 'gouraud' in self.vert_shader.lower() or 'phong' in self.vert_shader.lower():
+        if 'gouraud' in self.main_shaders[0].lower() or 'phong' in self.main_shaders[0].lower():
             self.vao.add_vbo(2, self.normals, ncomponents=3, stride=0, offset=None)
 
         if hasattr(self, 'uvs') and self.uvs is not None:
@@ -70,9 +75,9 @@ class Object(ABC):
         self.uma.upload_uniform_scalar1i(self.render_mode, "u_RenderMode")
         self.uma.upload_uniform_vector3fv(self.flat_color, "u_FlatColor")
 
-        if 'gouraud' in self.vert_shader.lower():
+        if 'gouraud' in self.main_shaders[0].lower():
             self.lighting.setup_gouraud()
-        elif 'phong' in self.vert_shader.lower():
+        elif 'phong' in self.main_shaders[0].lower():
             self.lighting.setup_phong()
 
         if self.is_wireframe:
