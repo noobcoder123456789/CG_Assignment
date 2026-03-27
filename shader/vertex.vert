@@ -16,7 +16,7 @@ out vec2 TexCoord;
 void main() {
     gl_Position = projection * modelview * vec4(position, 1.0);
     FragPos = vec3(modelview * vec4(position, 1.0));
-    Normal = mat3(modelview) * normal;
+    Normal = mat3(transpose(inverse(modelview))) * normal;
     Color = color;
     TexCoord = texcoord;
 }

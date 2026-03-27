@@ -45,8 +45,13 @@ class Viewer:
 
         glfw.make_context_current(self.win)
 
-        self.trackball = Trackball()
         self.mouse = (0, 0)
+        self.cameras = [
+            Trackball(distance=3.0),
+            Trackball(distance=5.0, pitch=45.0, yaw=45.0, roll=0.0),
+            Trackball(distance=4.0, pitch=89.0, yaw=0.0, roll=0.0),
+        ]
+        self.current_cam_idx = 0
 
         print(f"OpenGL {GL.glGetString(GL.GL_VERSION).decode()}, GLSL {GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode()}, Renderer {GL.glGetString(GL.GL_RENDERER).decode()}")
 
@@ -103,12 +108,13 @@ class Viewer:
         if imgui.get_io().want_capture_mouse:
             return
 
+        active_cam = self.cameras[self.current_cam_idx]
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_LEFT):
             if self.current_tool == "orbit":
-                self.trackball.drag(old, self.mouse, glfw.get_window_size(win))
+                active_cam.drag(old, self.mouse, glfw.get_window_size(win))
             
             elif self.current_tool == "pan":
-                self.trackball.pan(old, self.mouse)
+                active_cam.pan(old, self.mouse)
                 
             elif self.current_tool == "move" and self.selected_obj_idx != -1:
                 obj = self.drawables[self.selected_obj_idx]
@@ -123,7 +129,7 @@ class Viewer:
                 obj.update_model_matrix()
 
         if glfw.get_mouse_button(win, glfw.MOUSE_BUTTON_RIGHT):
-            self.trackball.pan(old, self.mouse)
+            active_cam.pan(old, self.mouse)
 
     def on_scroll(self, win, x_offset, y_offset):
         self.gui_renderer.scroll_callback(win, x_offset, y_offset)
@@ -131,7 +137,7 @@ class Viewer:
         if imgui.get_io().want_capture_mouse:
             return
             
-        self.trackball.zoom(y_offset, glfw.get_window_size(win)[1])
+        self.cameras[self.current_cam_idx].zoom(y_offset, glfw.get_window_size(win)[1])
 
     def add(self, *drawables):
         self.drawables.extend(drawables)
@@ -153,6 +159,24 @@ class Viewer:
         imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (8, 10))
         
         imgui.begin("Dashboard", flags=imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE)
+
+        if imgui.collapsing_header("SCENE SETTINGS", imgui.TREE_NODE_DEFAULT_OPEN):
+            imgui.text("--- Cameras ---")
+            changed_cam, self.current_cam_idx = imgui.combo(
+                "Active Cam", self.current_cam_idx, ["Cam 1 (Front)", "Cam 2 (Diagonal)", "Cam 3 (Top)"]
+            )
+            
+            imgui.spacing()
+            imgui.text("--- Lights ---")
+            if not hasattr(self, 'light_states'):
+                self.light_states = [1, 0, 0]
+            
+            for i in range(3):
+                changed, is_on = imgui.checkbox(f"Light {i+1}", bool(self.light_states[i]))
+                if changed:
+                    self.light_states[i] = 1 if is_on else 0
+        
+        imgui.separator()
 
         if imgui.collapsing_header("TOOLS", imgui.TREE_NODE_DEFAULT_OPEN):
             imgui.text("--- View ---")
@@ -194,7 +218,7 @@ class Viewer:
             if imgui.selectable(f"{get_object_id()}. Cube")[0]:
                 cube = CubeObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
                 translation_matrix = np.array([
-                    [1.0, 0.0, 0.0, 3.0],
+                    [1.0, 0.0, 0.0, 0.0],
                     [0.0, 1.0, 0.0, 0.0],
                     [0.0, 0.0, 1.0, 0.0],
                     [0.0, 0.0, 0.0, 1.0]
@@ -292,17 +316,17 @@ class Viewer:
         if 0 <= self.selected_obj_idx < len(self.drawables):
             obj = self.drawables[self.selected_obj_idx]
             
-            # imgui.separator()
-            # imgui.spacing()
-            # imgui.text("MODES:")
+            imgui.separator()
+            imgui.spacing()
+            imgui.text("MODES:")
             
-            # modes = ["(A) Flat Color", "(B) Vertex Color", "(C) Phong Shading"]
-            # changed, new_mode = imgui.combo("Mode", obj.render_mode, modes)
-            # if changed:
-            #     obj.render_mode = new_mode
+            modes = ["(A) Flat Color", "(B) Vertex Color", "(C) Phong Shading"]
+            changed, new_mode = imgui.combo("Mode", obj.render_mode, modes)
+            if changed:
+                obj.render_mode = new_mode
                 
-            # if obj.render_mode == 0:
-            #     changed_col, obj.flat_color = imgui.color_edit3("Pick Color", *obj.flat_color)
+            if obj.render_mode == 0:
+                changed_col, obj.flat_color = imgui.color_edit3("Pick Color", *obj.flat_color)
 
             imgui.spacing()
             changed_wire, obj.is_wireframe = imgui.checkbox("Wireframe", obj.is_wireframe)
@@ -327,8 +351,10 @@ class Viewer:
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
             self.render_ui()
-            view = self.trackball.view_matrix()
-            projection = self.trackball.projection_matrix(win_size)
+            # view = self.trackball.view_matrix()
+            # projection = self.trackball.projection_matrix(win_size)
+            view = self.cameras[self.current_cam_idx].view_matrix()
+            projection = self.cameras[self.current_cam_idx].projection_matrix(win_size)
 
             for drawable in self.drawables:
                 drawable.draw(projection, view, drawable.model_matrix)

@@ -1,8 +1,8 @@
-import glfw
 import numpy as np
 import OpenGL.GL as GL
 from libs.shader import *
 from libs.buffer import *
+import glfw, inspect, inspect
 from libs import transform as T
 from abc import ABC, abstractmethod
 from libs.lighting import LightingManager
@@ -75,10 +75,19 @@ class Object(ABC):
         self.uma.upload_uniform_scalar1i(self.render_mode, "u_RenderMode")
         self.uma.upload_uniform_vector3fv(self.flat_color, "u_FlatColor")
 
-        if 'gouraud' in self.main_shaders[0].lower():
-            self.lighting.setup_gouraud()
-        elif 'phong' in self.main_shaders[0].lower():
-            self.lighting.setup_phong()
+        light_states = [1, 0, 0]
+        for frame in inspect.stack():
+            if 'self' in frame[0].f_locals and hasattr(frame[0].f_locals['self'], 'light_states'):
+                light_states = frame[0].f_locals['self'].light_states
+                break
+
+        if hasattr(self, 'lighting') and hasattr(self.lighting, 'setup_multi_lights'):
+            self.lighting.setup_multi_lights(view, light_states)
+        else:
+            if 'gouraud' in self.main_shaders[0].lower():
+                self.lighting.setup_gouraud()
+            elif 'phong' in self.main_shaders[0].lower():
+                self.lighting.setup_phong()
 
         if self.is_wireframe:
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)

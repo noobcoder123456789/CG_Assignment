@@ -4,6 +4,7 @@ Lighting management utilities for Phong shading.
 Provides Light, Material, and LightingManager classes to simplify
 lighting setup and reduce code duplication.
 """
+import OpenGL.GL as GL
 import numpy as np
 from typing import Optional, Tuple, Union
 
@@ -222,3 +223,25 @@ class LightingManager:
         self.uma.upload_uniform_vector3fv(light.position, 'light_pos')
         self.uma.upload_uniform_matrix3fv(K_materials, 'K_materials', False)
         self.uma.upload_uniform_scalar1f(shininess, 'shininess')
+
+    def setup_multi_lights(self, view_matrix, light_states):
+        positions = [
+            [10.0, 10.0, 10.0],
+            [-10.0, 5.0, 5.0],
+            [0.0, -10.0, 0.0]
+        ]
+        colors = [
+            [1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0]
+        ]
+        
+        GL.glUseProgram(self.uma.shader.render_idx)
+        for i in range(3):
+            pos_4 = np.array([positions[i][0], positions[i][1], positions[i][2], 1.0])
+            pos_view = view_matrix @ pos_4
+            pos_view_3 = pos_view[:3] / pos_view[3]
+            
+            self.uma.upload_uniform_vector3fv(pos_view_3, f'lightPos[{i}]')
+            self.uma.upload_uniform_vector3fv(np.array(colors[i], dtype=np.float32), f'lightColor[{i}]')
+            self.uma.upload_uniform_scalar1i(light_states[i], f'lightState[{i}]')
