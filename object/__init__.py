@@ -1,8 +1,8 @@
 import numpy as np
+import glfw, inspect
 import OpenGL.GL as GL
 from libs.shader import *
 from libs.buffer import *
-import glfw, inspect, inspect
 from libs import transform as T
 from abc import ABC, abstractmethod
 from libs.lighting import LightingManager
@@ -76,13 +76,26 @@ class Object(ABC):
         self.uma.upload_uniform_vector3fv(self.flat_color, "u_FlatColor")
 
         light_states = [1, 0, 0]
-        for frame in inspect.stack():
-            if 'self' in frame[0].f_locals and hasattr(frame[0].f_locals['self'], 'light_states'):
-                light_states = frame[0].f_locals['self'].light_states
-                break
+        light_positions = [
+            [10.0, 10.0, 10.0],
+            [-10.0, 5.0, 5.0],
+            [0.0, -10.0, 0.0]
+        ]
+        
+        try:
+            for frame in inspect.stack():
+                if 'self' in frame[0].f_locals:
+                    canvas = frame[0].f_locals['self']
+                    if hasattr(canvas, 'light_states'):
+                        light_states = canvas.light_states
+                    if hasattr(canvas, 'light_positions'):
+                        light_positions = canvas.light_positions
+                        break
+        except:
+            pass
 
         if hasattr(self, 'lighting') and hasattr(self.lighting, 'setup_multi_lights'):
-            self.lighting.setup_multi_lights(view, light_states)
+            self.lighting.setup_multi_lights(view, light_states, light_positions)
         else:
             if 'gouraud' in self.main_shaders[0].lower():
                 self.lighting.setup_gouraud()

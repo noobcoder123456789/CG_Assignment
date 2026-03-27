@@ -24,6 +24,7 @@ from object.threeD.prism import PrismObject
 from object.threeD.tetrahedron import TetrahedronObject
 from object.threeD.torus import TorusObject
 from object.threeD.truncated_cone import TruncatedConeObject
+from object.threeD.sun import SunObject
 
 from object.threeD.sphere import CoordinatesSphereObject, CubeSphereObject, TetrahedronSphereObject 
 from object.threeD.function_surface import FunctionSurface
@@ -68,6 +69,19 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.gl_canvas.update)
         self.timer.start(16) 
+
+    def add_sun(self):
+        self.gl_canvas.makeCurrent()
+        try:
+            sun = SunObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
+            if hasattr(sun, 'update_model_matrix'): sun.update_model_matrix()
+            self.gl_canvas.objects.append(sun)
+            self.gl_canvas.sun_idx = len(self.gl_canvas.objects) - 1
+            self.lst_objects.addItem("🌞 Nguồn sáng (Mặt trời)")
+            self.lst_objects.setCurrentRow(self.gl_canvas.sun_idx)
+            self.cb_tool.setCurrentIndex(2)
+        finally:
+            self.gl_canvas.doneCurrent()
 
     def apply_dark_theme(self):
         app = QApplication.instance()
@@ -228,9 +242,15 @@ class MainWindow(QMainWindow):
         layout_env.addLayout(form_env)
         
         layout_env.addWidget(QLabel("--- Lighting ---"))
+
+        btn_add_sun = QPushButton("Spawn Sun (Light source 1)")
+        btn_add_sun.setStyleSheet("background-color: #f57f17; color: white; font-weight: bold;")
+        btn_add_sun.clicked.connect(self.add_sun)
+        layout_env.addWidget(btn_add_sun)
+
         self.chk_l1 = QCheckBox("💡 Light 1 (White - Right)")
         self.chk_l1.setChecked(True)
-        self.chk_l2 = QCheckBox("💡 Light 2 (Đỏ - Left)")
+        self.chk_l2 = QCheckBox("💡 Light 2 (Red - Left)")
         self.chk_l3 = QCheckBox("💡 Light 3 (Blue - Bottom)")
         
         self.chk_l1.stateChanged.connect(self.update_lights)

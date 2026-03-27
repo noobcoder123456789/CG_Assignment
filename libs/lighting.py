@@ -224,21 +224,16 @@ class LightingManager:
         self.uma.upload_uniform_matrix3fv(K_materials, 'K_materials', False)
         self.uma.upload_uniform_scalar1f(shininess, 'shininess')
 
-    def setup_multi_lights(self, view_matrix, light_states):
-        positions = [
-            [10.0, 10.0, 10.0],
-            [-10.0, 5.0, 5.0],
-            [0.0, -10.0, 0.0]
-        ]
+    def setup_multi_lights(self, view_matrix, light_states, light_positions):
         colors = [
             [1.0, 1.0, 1.0],
-            [1.0, 1.0, 1.0],
-            [1.0, 1.0, 1.0]
+            [1.0, 0.2, 0.2],
+            [0.2, 0.2, 1.0]
         ]
         
         GL.glUseProgram(self.uma.shader.render_idx)
         for i in range(3):
-            pos_4 = np.array([positions[i][0], positions[i][1], positions[i][2], 1.0])
+            pos_4 = np.array([light_positions[i][0], light_positions[i][1], light_positions[i][2], 1.0])
             pos_view = view_matrix @ pos_4
             pos_view_3 = pos_view[:3] / pos_view[3]
             
