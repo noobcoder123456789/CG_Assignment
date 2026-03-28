@@ -1,8 +1,8 @@
 import numpy as np
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QComboBox, QCheckBox, QLabel, QGroupBox, QFormLayout,
-    QDockWidget, QListWidget, QTabWidget, QLineEdit, QFileDialog, QColorDialog
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QComboBox, QCheckBox, QLabel, QGroupBox, QFormLayout, QDockWidget,
+    QListWidget, QTabWidget, QLineEdit, QFileDialog, QColorDialog, QSlider
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPalette, QColor
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
     def load_texture(self):
         idx = self.gl_canvas.selected_idx
         if 0 <= idx < len(self.gl_canvas.objects):
-            file_name, _ = QFileDialog.getOpenFileName(self, "Chọn ảnh Texture", "", "Images (*.png *.jpg *.jpeg)")
+            file_name, _ = QFileDialog.getOpenFileName(self, "Choose Texture Image", "", "Images (*.png *.jpg *.jpeg)")
             if file_name:
                 obj = self.gl_canvas.objects[idx]
                 obj.texture_file = file_name
@@ -223,7 +223,7 @@ class MainWindow(QMainWindow):
         btn_color.clicked.connect(self.pick_color)
         form_render.addRow("Color:", btn_color)
 
-        btn_tex = QPushButton("🖼️ Load Texture Image")
+        btn_tex = QPushButton("Load Texture Image")
         btn_tex.clicked.connect(self.load_texture)
         form_render.addRow("Texture:", btn_tex)
 
@@ -254,15 +254,23 @@ class MainWindow(QMainWindow):
         
         layout_env.addWidget(QLabel("--- Lighting ---"))
 
-        btn_add_sun = QPushButton("🌞 Spawn Sun (White Light)")
+        btn_add_sun = QPushButton("Spawn Sun (White Light)")
         btn_add_sun.setStyleSheet("background-color: #f57f17; color: white; font-weight: bold;")
         btn_add_sun.clicked.connect(self.add_sun)
         layout_env.addWidget(btn_add_sun)
 
-        btn_light_color = QPushButton("🎨 Change light source color (Select light source)")
+        btn_light_color = QPushButton("Change light source color (Select light source)")
         btn_light_color.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
         btn_light_color.clicked.connect(self.pick_light_color)
         layout_env.addWidget(btn_light_color)
+
+        layout_env.addWidget(QLabel("Intensity:"))
+        self.slider_intensity = QSlider(Qt.Horizontal)
+        self.slider_intensity.setMinimum(1)
+        self.slider_intensity.setMaximum(500)
+        self.slider_intensity.setValue(50)
+        self.slider_intensity.valueChanged.connect(self.change_intensity)
+        layout_env.addWidget(self.slider_intensity)
         
         layout_env.addStretch()
         tabs.addTab(tab_env, "Environment")
@@ -384,12 +392,8 @@ class MainWindow(QMainWindow):
                 )
                 self.gl_canvas.update()
 
-    def update_lights(self, *args):
-        self.gl_canvas.light_states = [
-            1 if self.chk_l1.isChecked() else 0,
-            1 if self.chk_l2.isChecked() else 0,
-            1 if self.chk_l3.isChecked() else 0
-        ]
+    def change_intensity(self, value):
+        self.gl_canvas.light_intensity = float(value)
         self.gl_canvas.update()
 
     def change_camera(self, index):

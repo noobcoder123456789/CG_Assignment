@@ -9,6 +9,7 @@ out vec4 FragColor;
 uniform int u_RenderMode;
 uniform vec3 u_FlatColor;
 uniform sampler2D u_Texture;
+uniform float u_LightIntensity;
 
 #define MAX_LIGHTS 10
 uniform vec3 lightPos[MAX_LIGHTS];
@@ -45,8 +46,8 @@ void main() {
             vec3 specular = specularStrength * spec * lightColor[i];
             
             ambient *= attenuation;
-            diffuse *= (attenuation * 40.0); 
-            specular *= (attenuation * 40.0);
+            diffuse *= (attenuation * u_LightIntensity); 
+            specular *= (attenuation * u_LightIntensity);
             
             result_base += (ambient + diffuse);
             result_specular += specular;

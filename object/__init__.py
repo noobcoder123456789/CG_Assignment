@@ -82,11 +82,15 @@ class Object(ABC):
         light_positions = []
         light_colors = []
         light_states = []
+        light_intensity = 50.0
         
         if hasattr(self, 'canvas'):
             light_positions = getattr(self.canvas, 'light_positions', [])
             light_colors = getattr(self.canvas, 'light_colors', [])
             light_states = getattr(self.canvas, 'light_states', [])
+            light_intensity = getattr(self.canvas, 'light_intensity', 50.0)
+
+        self.uma.upload_uniform_scalar1f(light_intensity, "u_LightIntensity")
 
         if hasattr(self, 'lighting'):
             self.lighting.setup_multi_suns(view, light_positions, light_colors, light_states)
