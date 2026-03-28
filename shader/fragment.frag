@@ -22,8 +22,12 @@ uniform float far_plane = 100.0;
 
 void main() {
     vec3 norm = normalize(Normal);
+
+    if (!gl_FrontFacing) {
+        norm = -norm;
+    }
+
     vec3 viewDir = normalize(viewPos - FragPos);
-    
     vec3 result_base = vec3(0.0);
     vec3 result_specular = vec3(0.0);
     
@@ -67,9 +71,9 @@ void main() {
         vec3 baseColor = texColor.rgb * Color; 
         FragColor = vec4(result_base * baseColor + result_specular, texColor.a);
     } else if (u_RenderMode == 5) {  
-        float z = gl_FragCoord.z * 2.0 - 1.0;
-        float depth = (2.0 * near_plane * far_plane) / (far_plane + near_plane - z * (far_plane - near_plane));
-        FragColor = vec4(vec3(depth / far_plane), 1.0);
+        float real_depth = abs(FragPos.z);
+        float depthValue = clamp(real_depth / 15.0, 0.0, 1.0); 
+        FragColor = vec4(vec3(depthValue), 1.0);
     } else {
         FragColor = vec4(1.0, 0.0, 1.0, 1.0);
     }

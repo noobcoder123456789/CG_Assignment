@@ -39,6 +39,11 @@ class Object(ABC):
         self.model_matrix = (mat_t @ mat_r @ mat_s)
 
     def setup(self):
+        if "twoD" in type(self).__module__:
+            self.normals = np.zeros_like(self.vertices)
+            self.normals[:, 1] = 1.0
+            self.normals = -np.array(self.normals, dtype=np.float32)
+
         if hasattr(self, 'vertices') and self.vertices is not None:
             self.vertices = np.array(self.vertices, dtype=np.float32)
             

@@ -44,6 +44,7 @@ class FunctionSurface(Object):
         norms = np.zeros_like(self.vertices)
         norms[:, 1] = 1.0 
         self.normals = norms
+        self.normals = -np.array(self.normals, dtype=np.float32)
 
     def draw(self, projection, view, model):
         super().draw_preprocess(projection, view, model)
