@@ -74,6 +74,7 @@ class MainWindow(QMainWindow):
         self.gl_canvas.makeCurrent()
         try:
             sun = SunObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
+            sun.canvas = self.gl_canvas
             sun.render_mode = 0 
             sun.flat_color = np.array([1.0, 1.0, 1.0], dtype=np.float32)
             sun.scale = [0.3, 0.3, 0.3]
@@ -279,6 +280,7 @@ class MainWindow(QMainWindow):
 
         try:
             new_obj = ShapeClass(VERTEX_GLSL, FRAGMENT_GLSL).setup()
+            new_obj.canvas = self.gl_canvas
             self.gl_canvas.objects.append(new_obj)
             self.lst_objects.addItem(f"[{category[:2]}] {shape_name}")
             self.lst_objects.setCurrentRow(len(self.gl_canvas.objects) - 1)
@@ -296,6 +298,7 @@ class MainWindow(QMainWindow):
                 except: return 0
             
             surface = FunctionSurface(VERTEX_GLSL, FRAGMENT_GLSL, func=temp_func).setup()
+            surface.canvas = self.gl_canvas
             self.gl_canvas.objects.append(surface)
             self.lst_objects.addItem(f"f(x,y): {expr}")
             self.lst_objects.setCurrentRow(len(self.gl_canvas.objects) - 1)
@@ -310,6 +313,7 @@ class MainWindow(QMainWindow):
             self.gl_canvas.makeCurrent()
             try:
                 mesh = MeshObject(VERTEX_GLSL, FRAGMENT_GLSL, file_name).setup()
+                mesh.canvas = self.gl_canvas
                 self.gl_canvas.objects.append(mesh)
                 self.lst_objects.addItem(file_name.split("/")[-1])
                 self.lst_objects.setCurrentRow(len(self.gl_canvas.objects) - 1)

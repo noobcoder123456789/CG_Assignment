@@ -48,11 +48,14 @@ class OpenGLCanvas(QOpenGLWidget):
         view = self.cameras[self.current_cam_idx].view_matrix()
         projection = self.cameras[self.current_cam_idx].projection_matrix(win_size)
 
-        if self.sun_idx != -1 and self.sun_idx < len(self.objects):
-            self.sun_pos = self.objects[self.sun_idx].translation.copy()
-            self.has_sun = 1
-        else:
-            self.has_sun = 0
+        self.light_positions = []
+        self.light_colors = []
+        self.light_states = []
+        for obj in self.objects:
+            if type(obj).__name__ == 'SunObject':
+                self.light_positions.append(obj.translation.copy())
+                self.light_colors.append(obj.flat_color.copy())
+                self.light_states.append(1)
 
         if self.axis:
             self.axis.draw(projection, view, self.axis.model_matrix)

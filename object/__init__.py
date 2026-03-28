@@ -39,6 +39,21 @@ class Object(ABC):
         self.model_matrix = (mat_t @ mat_r @ mat_s)
 
     def setup(self):
+        if hasattr(self, 'vertices') and self.vertices is not None:
+            self.vertices = np.array(self.vertices, dtype=np.float32)
+            
+        if hasattr(self, 'colors') and self.colors is not None:
+            self.colors = np.array(self.colors, dtype=np.float32)
+            
+        if hasattr(self, 'normals') and self.normals is not None:
+            self.normals = np.array(self.normals, dtype=np.float32)
+            
+        if hasattr(self, 'uvs') and self.uvs is not None:
+            self.uvs = np.array(self.uvs, dtype=np.float32)
+            
+        if hasattr(self, 'indices') and self.indices is not None:
+            self.indices = np.array(self.indices, dtype=np.uint32)
+
         self.vao.add_vbo(0, self.vertices, ncomponents=3, stride=0, offset=None)
         self.vao.add_vbo(1, self.colors, ncomponents=3, stride=0, offset=None)
 
@@ -52,6 +67,7 @@ class Object(ABC):
 
         if self.texture_file is not None:
             self.uma.setup_texture("u_Texture", self.texture_file)
+            
         return self
     
     def draw_preprocess(self, projection, view, model):
@@ -63,18 +79,17 @@ class Object(ABC):
         self.uma.upload_uniform_scalar1i(self.render_mode, "u_RenderMode")
         self.uma.upload_uniform_vector3fv(self.flat_color, "u_FlatColor")
 
-        sun_pos = [0.0, 0.0, 0.0]
-        has_sun = 0
-        for frame in inspect.stack():
-            if 'self' in frame[0].f_locals:
-                canvas_obj = frame[0].f_locals['self']
-                if hasattr(canvas_obj, 'has_sun'):
-                    has_sun = canvas_obj.has_sun
-                    sun_pos = canvas_obj.sun_pos
-                    break
+        light_positions = []
+        light_colors = []
+        light_states = []
+        
+        if hasattr(self, 'canvas'):
+            light_positions = getattr(self.canvas, 'light_positions', [])
+            light_colors = getattr(self.canvas, 'light_colors', [])
+            light_states = getattr(self.canvas, 'light_states', [])
 
         if hasattr(self, 'lighting'):
-            self.lighting.setup_sun(view, sun_pos, has_sun)
+            self.lighting.setup_multi_suns(view, light_positions, light_colors, light_states)
 
         if self.is_wireframe:
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)

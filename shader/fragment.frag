@@ -10,8 +10,10 @@ uniform int u_RenderMode;
 uniform vec3 u_FlatColor;
 uniform sampler2D u_Texture;
 
-uniform vec3 u_SunPos;
-uniform int u_HasSun;
+#define MAX_LIGHTS 10
+uniform vec3 lightPos[MAX_LIGHTS];
+uniform vec3 lightColor[MAX_LIGHTS];
+uniform int lightState[MAX_LIGHTS];
 
 const vec3 viewPos = vec3(0.0, 0.0, 0.0);
 uniform float near_plane = 0.1;
@@ -24,29 +26,31 @@ void main() {
     vec3 result_base = vec3(0.0);
     vec3 result_specular = vec3(0.0);
     
-    if(u_HasSun == 1) {
-        float distance = length(u_SunPos - FragPos);
-        float attenuation = 1.0 / (1.0 + 0.045 * distance + 0.0075 * (distance * distance));
-        
-        vec3 lightDir = normalize(u_SunPos - FragPos);
-        
-        float ambientStrength = 0.1;
-        vec3 ambient = ambientStrength * vec3(1.0);
-        
-        float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = diff * vec3(1.0);
-        
-        float specularStrength = 1.2;
-        vec3 reflectDir = reflect(-lightDir, norm);  
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
-        vec3 specular = specularStrength * spec * vec3(1.0);
-        
-        ambient *= attenuation;
-        diffuse *= (attenuation * 10.0); 
-        specular *= (attenuation * 10.0);
-        
-        result_base = ambient + diffuse;
-        result_specular = specular;
+    for(int i = 0; i < MAX_LIGHTS; i++) {
+        if(lightState[i] == 1) {
+            float distance = length(lightPos[i] - FragPos);
+            float attenuation = 1.0 / (1.0 + 0.045 * distance + 0.0075 * (distance * distance));
+            
+            vec3 lightDir = normalize(lightPos[i] - FragPos);
+            
+            float ambientStrength = 0.1;
+            vec3 ambient = ambientStrength * lightColor[i];
+            
+            float diff = max(dot(norm, lightDir), 0.0);
+            vec3 diffuse = diff * lightColor[i];
+            
+            float specularStrength = 1.2;
+            vec3 reflectDir = reflect(-lightDir, norm);  
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
+            vec3 specular = specularStrength * spec * lightColor[i];
+            
+            ambient *= attenuation;
+            diffuse *= (attenuation * 40.0); 
+            specular *= (attenuation * 40.0);
+            
+            result_base += (ambient + diffuse);
+            result_specular += specular;
+        }
     }
     
     if (u_RenderMode == 0) {
