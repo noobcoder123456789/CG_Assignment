@@ -125,11 +125,20 @@ class OpenGLCanvas(QOpenGLWidget):
             
             elif self.current_tool == 2 and self.is_dragging_object:
                 obj = self.objects[self.selected_idx]
-                view_rot = active_cam.matrix()
-                cam_right = view_rot[0, :3]
-                cam_up = view_rot[1, :3]
-                sensitivity = 0.0015 * active_cam.distance
-                delta_world = cam_right * (dx * sensitivity) + cam_up * (dy * sensitivity)
+                
+                view = active_cam.view_matrix()
+                proj = active_cam.projection_matrix((self.width(), self.height()))
+                
+                obj_pos_world = np.array([obj.translation[0], obj.translation[1], obj.translation[2], 1.0])
+                obj_pos_view = view @ obj_pos_world
+                
+                cam_right = view[0, :3]
+                cam_up = view[1, :3]
+                
+                z_depth = obj_pos_view[2] 
+                dx_view = (2.0 * dx / self.width()) * (-z_depth) / proj[0, 0]
+                dy_view = (2.0 * dy / self.height()) * (-z_depth) / proj[1, 1]
+                delta_world = cam_right * dx_view + cam_up * dy_view
                 
                 obj.translation[0] += delta_world[0]
                 obj.translation[1] += delta_world[1]
