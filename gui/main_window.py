@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
             
             self.gl_canvas.objects.append(sun)
             self.gl_canvas.sun_idx = len(self.gl_canvas.objects) - 1
-            self.lst_objects.addItem("🌞 Nguồn sáng (Trắng)")
+            self.lst_objects.addItem("Light source")
             self.lst_objects.setCurrentRow(self.gl_canvas.sun_idx)
             self.cb_tool.setCurrentIndex(2)
             
@@ -254,16 +254,38 @@ class MainWindow(QMainWindow):
         
         layout_env.addWidget(QLabel("--- Lighting ---"))
 
-        btn_add_sun = QPushButton("🌞 Spawn Mặt Trời (Ánh sáng Trắng)")
+        btn_add_sun = QPushButton("🌞 Spawn Sun (White Light)")
         btn_add_sun.setStyleSheet("background-color: #f57f17; color: white; font-weight: bold;")
         btn_add_sun.clicked.connect(self.add_sun)
         layout_env.addWidget(btn_add_sun)
+
+        btn_light_color = QPushButton("🎨 Change light source color (Select light source)")
+        btn_light_color.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
+        btn_light_color.clicked.connect(self.pick_light_color)
+        layout_env.addWidget(btn_light_color)
         
         layout_env.addStretch()
         tabs.addTab(tab_env, "Environment")
 
         dock.setWidget(tabs)
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
+
+    def pick_light_color(self, *args):
+        idx = self.gl_canvas.selected_idx
+        if 0 <= idx < len(self.gl_canvas.objects):
+            obj = self.gl_canvas.objects[idx]
+            
+            if type(obj).__name__ == 'SunObject':
+                color = QColorDialog.getColor()
+                if color.isValid():
+                    obj.flat_color = np.array(
+                        [color.red()/255, color.green()/255, color.blue()/255],
+                        dtype=np.float32
+                    )
+                    self.lst_objects.item(idx).setText(f"Light Source (RGB: {color.red()}, {color.green()}, {color.blue()})")
+                    self.gl_canvas.update()
+            else:
+                print("Please select a 'Light Source' in the Scene Graph before changing the color!")
 
     def update_shape_list(self, category):
         self.cb_shape.clear()
@@ -294,8 +316,10 @@ class MainWindow(QMainWindow):
         self.gl_canvas.makeCurrent()
         try:
             def temp_func(x, y):
-                try: return eval(expr.replace('^', '**'), {"__builtins__": None}, {"sin": np.sin, "cos": np.cos, "x": x, "y": y})
-                except: return 0
+                try:
+                    return eval(expr.replace('^', '**'), {"__builtins__": None}, {"sin": np.sin, "cos": np.cos, "x": x, "y": y})
+                except:
+                    return 0
             
             surface = FunctionSurface(VERTEX_GLSL, FRAGMENT_GLSL, func=temp_func).setup()
             surface.canvas = self.gl_canvas
