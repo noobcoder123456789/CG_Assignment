@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
         form_render = QFormLayout()
         
         self.cb_mode = QComboBox()
-        self.cb_mode.addItems(["Flat Color", "Vertex Color", "Phong Shading", "Texture", "Phong+Tex", "Depth Map"])
+        self.cb_mode.addItems(["Flat Color", "Vertex Color", "Phong Shading", "Texture", "Phong+Tex", "Depth Map", "Phong + Contour"])
         self.cb_mode.setCurrentIndex(2)
         self.cb_mode.currentIndexChanged.connect(self.update_object_props)
         form_render.addRow("Shading:", self.cb_mode)
@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
         tab_math = QWidget()
         layout_math = QVBoxLayout(tab_math)
         layout_math.addWidget(QLabel("Enter mathematical functions z = f(x, y):"))
-        self.txt_func = QLineEdit("sin(x) + cos(y)")
+        self.txt_func = QLineEdit("(x**2+y-11)**2 + (x+y**2-7)**2")
         btn_draw_func = QPushButton("Drawing the Jaw Surface")
         btn_draw_func.clicked.connect(self.draw_function)
         
