@@ -76,28 +76,30 @@ void main() {
         float depthValue = clamp(real_depth / 15.0, 0.0, 1.0); 
         FragColor = vec4(vec3(depthValue), 1.0);
     } else if (u_RenderMode == 6) {
-        float h = LocalPos.y;         
-        float density = 10.0;
-        float stepped_h = floor(h * density) / density;
-        float t = clamp((stepped_h + 1.5) / 3.0, 0.0, 1.0); 
-        
+        float h = LocalPos.y;
+        float density = 3.0; 
+        float lineThickness = 0.03; 
+        float t = clamp(h / 4.0, 0.0, 1.0); 
+
         vec3 c_water = vec3(0.5, 0.7, 0.6);
         vec3 c_grass = vec3(0.7, 0.8, 0.5);
         vec3 c_dirt  = vec3(0.8, 0.7, 0.5);
         vec3 c_snow  = vec3(0.95, 0.95, 0.95);
         vec3 topoColor;
         
-        if (t < 0.33) topoColor = mix(c_water, c_grass, t / 0.33);
-        else if (t < 0.66) topoColor = mix(c_grass, c_dirt, (t - 0.33) / 0.33);
-        else topoColor = mix(c_dirt, c_snow, (t - 0.66) / 0.34);
+        if (t < 0.33) {
+            topoColor = mix(c_water, c_grass, t / 0.33);
+        } else if (t < 0.66) {
+            topoColor = mix(c_grass, c_dirt, (t - 0.33) / 0.33);
+        } else {
+            topoColor = mix(c_dirt, c_snow, (t - 0.66) / 0.34);
+        }
         
         float f = fract(h * density);
-        float lineThickness = 0.08;
-        
         if (f < lineThickness) {
             FragColor = vec4(0.1, 0.1, 0.1, 1.0);
         } else {
-            FragColor = vec4(topoColor * (result_base + 0.5), 1.0);
+            FragColor = vec4(topoColor, 1.0);
         }
     } else {
         FragColor = vec4(1.0, 0.0, 1.0, 1.0);
