@@ -20,7 +20,16 @@ class OpenGLCanvas(QOpenGLWidget):
         self.axis = None
         self.objects = [] 
         self.selected_idx = -1
-        self.light_states = [1, 0, 0] 
+
+        self.light_positions = [
+            [10.0, 10.0, 10.0],
+            [-10.0, 5.0, 5.0],
+            [0.0, -10.0, 0.0]
+        ]
+        self.sun_idx = -1
+        self.sun_pos = [0.0, 0.0, 0.0]
+        self.has_sun = 0
+        self.light_intensity = 500.0
         
         self.is_dragging_object = False 
         self.current_tool = 0 
@@ -38,6 +47,12 @@ class OpenGLCanvas(QOpenGLWidget):
         win_size = (self.width(), self.height())
         view = self.cameras[self.current_cam_idx].view_matrix()
         projection = self.cameras[self.current_cam_idx].projection_matrix(win_size)
+
+        if self.sun_idx != -1 and self.sun_idx < len(self.objects):
+            self.sun_pos = self.objects[self.sun_idx].translation.copy()
+            self.has_sun = 1
+        else:
+            self.has_sun = 0
 
         if self.axis:
             self.axis.draw(projection, view, self.axis.model_matrix)
@@ -107,9 +122,18 @@ class OpenGLCanvas(QOpenGLWidget):
             
             elif self.current_tool == 2 and self.is_dragging_object:
                 obj = self.objects[self.selected_idx]
-                obj.translation[0] += dx / 100.0
-                obj.translation[1] += dy / 100.0
-                if hasattr(obj, 'update_model_matrix'): obj.update_model_matrix()
+                view_rot = active_cam.matrix()
+                cam_right = view_rot[0, :3]
+                cam_up = view_rot[1, :3]
+                sensitivity = 0.0015 * active_cam.distance
+                delta_world = cam_right * (dx * sensitivity) + cam_up * (dy * sensitivity)
+                
+                obj.translation[0] += delta_world[0]
+                obj.translation[1] += delta_world[1]
+                obj.translation[2] += delta_world[2]
+                
+                if hasattr(obj, 'update_model_matrix'): 
+                    obj.update_model_matrix()
                 
             elif self.current_tool == 3 and self.is_dragging_object:
                 obj = self.objects[self.selected_idx]

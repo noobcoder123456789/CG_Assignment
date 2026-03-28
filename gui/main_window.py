@@ -74,12 +74,22 @@ class MainWindow(QMainWindow):
         self.gl_canvas.makeCurrent()
         try:
             sun = SunObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
-            if hasattr(sun, 'update_model_matrix'): sun.update_model_matrix()
+            sun.render_mode = 0 
+            sun.flat_color = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+            sun.scale = [0.3, 0.3, 0.3]
+            sun.translation = [2.0, 3.0, 2.0]
+            if hasattr(sun, 'update_model_matrix'):
+                sun.update_model_matrix()
+            
             self.gl_canvas.objects.append(sun)
             self.gl_canvas.sun_idx = len(self.gl_canvas.objects) - 1
-            self.lst_objects.addItem("🌞 Nguồn sáng (Mặt trời)")
+            self.lst_objects.addItem("🌞 Nguồn sáng (Trắng)")
             self.lst_objects.setCurrentRow(self.gl_canvas.sun_idx)
             self.cb_tool.setCurrentIndex(2)
+            
+            self.gl_canvas.has_sun = 1
+            self.gl_canvas.update()
+            
         finally:
             self.gl_canvas.doneCurrent()
 
@@ -243,23 +253,11 @@ class MainWindow(QMainWindow):
         
         layout_env.addWidget(QLabel("--- Lighting ---"))
 
-        btn_add_sun = QPushButton("Spawn Sun (Light source 1)")
+        btn_add_sun = QPushButton("🌞 Spawn Mặt Trời (Ánh sáng Trắng)")
         btn_add_sun.setStyleSheet("background-color: #f57f17; color: white; font-weight: bold;")
         btn_add_sun.clicked.connect(self.add_sun)
         layout_env.addWidget(btn_add_sun)
-
-        self.chk_l1 = QCheckBox("💡 Light 1 (White - Right)")
-        self.chk_l1.setChecked(True)
-        self.chk_l2 = QCheckBox("💡 Light 2 (Red - Left)")
-        self.chk_l3 = QCheckBox("💡 Light 3 (Blue - Bottom)")
         
-        self.chk_l1.stateChanged.connect(self.update_lights)
-        self.chk_l2.stateChanged.connect(self.update_lights)
-        self.chk_l3.stateChanged.connect(self.update_lights)
-        
-        layout_env.addWidget(self.chk_l1)
-        layout_env.addWidget(self.chk_l2)
-        layout_env.addWidget(self.chk_l3)
         layout_env.addStretch()
         tabs.addTab(tab_env, "Environment")
 
