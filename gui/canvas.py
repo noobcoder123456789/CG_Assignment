@@ -97,7 +97,7 @@ class OpenGLCanvas(QOpenGLWidget):
             
             if r == 255:
                 self.selected_idx = -1
-                self.window().lst_objects.clearSelection()
+                self.window().lst_objects.setCurrentRow(-1) 
                 self.is_dragging_object = False 
             else:
                 selected_idx = r - 1

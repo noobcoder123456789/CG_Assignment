@@ -220,13 +220,13 @@ class MainWindow(QMainWindow):
         self.chk_wireframe.stateChanged.connect(self.update_object_props)
         form_render.addRow("", self.chk_wireframe)
 
-        btn_color = QPushButton("Change Flat Color")
-        btn_color.clicked.connect(self.pick_color)
-        form_render.addRow("Color:", btn_color)
+        self.btn_color = QPushButton("Change Flat Color")
+        self.btn_color.clicked.connect(self.pick_color)
+        form_render.addRow("Color:", self.btn_color)
 
-        btn_tex = QPushButton("Load Texture Image")
-        btn_tex.clicked.connect(self.load_texture)
-        form_render.addRow("Texture:", btn_tex)
+        self.btn_tex = QPushButton("Load Texture Image")
+        self.btn_tex.clicked.connect(self.load_texture)
+        form_render.addRow("Texture:", self.btn_tex)
 
         layout_render.addLayout(form_render)
         layout_render.addStretch()
@@ -260,12 +260,14 @@ class MainWindow(QMainWindow):
         btn_add_sun.clicked.connect(self.add_sun)
         layout_env.addWidget(btn_add_sun)
 
-        btn_light_color = QPushButton("Change light color")
-        btn_light_color.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
-        btn_light_color.clicked.connect(self.pick_light_color)
-        layout_env.addWidget(btn_light_color)
+        self.btn_light_color = QPushButton("Change light color")
+        self.btn_light_color.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
+        self.btn_light_color.clicked.connect(self.pick_light_color)
+        layout_env.addWidget(self.btn_light_color)
 
-        layout_env.addWidget(QLabel("Intensity:"))
+        self.lbl_intensity = QLabel("Intensity:")
+        layout_env.addWidget(self.lbl_intensity)
+        
         self.slider_intensity = QSlider(Qt.Horizontal)
         self.slider_intensity.setMinimum(1)
         self.slider_intensity.setMaximum(500)
@@ -278,6 +280,7 @@ class MainWindow(QMainWindow):
 
         dock.setWidget(tabs)
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
+        self.update_inspector_ui()
 
     def pick_light_color(self, *args):
         idx = self.gl_canvas.selected_idx
@@ -361,11 +364,13 @@ class MainWindow(QMainWindow):
             self.gl_canvas.objects.pop(idx)
             self.lst_objects.takeItem(idx)
             self.gl_canvas.selected_idx = -1
+            self.update_inspector_ui()
 
     def clear_scene(self):
         self.gl_canvas.objects.clear()
         self.lst_objects.clear()
         self.gl_canvas.selected_idx = -1
+        self.update_inspector_ui()
 
     def on_object_selected(self, index):
         self.gl_canvas.selected_idx = index
@@ -378,6 +383,8 @@ class MainWindow(QMainWindow):
                 self.slider_intensity.blockSignals(True)
                 self.slider_intensity.setValue(int(obj.intensity))
                 self.slider_intensity.blockSignals(False)
+
+        self.update_inspector_ui()
 
     def update_object_props(self, *args):
         idx = self.gl_canvas.selected_idx
@@ -408,3 +415,23 @@ class MainWindow(QMainWindow):
 
     def change_camera(self, index):
         self.gl_canvas.current_cam_idx = index
+
+    def update_inspector_ui(self):
+        idx = self.gl_canvas.selected_idx
+        has_selection = (0 <= idx < len(self.gl_canvas.objects))
+        
+        self.cb_mode.setEnabled(has_selection)
+        self.chk_wireframe.setEnabled(has_selection)
+        self.btn_color.setEnabled(has_selection)
+        self.btn_tex.setEnabled(has_selection)
+        
+        is_sun = False
+        if has_selection:
+            obj = self.gl_canvas.objects[idx]
+            if type(obj).__name__ == 'SunObject':
+                is_sun = True
+                self.btn_tex.setEnabled(False)
+                
+        self.btn_light_color.setVisible(is_sun)
+        self.lbl_intensity.setVisible(is_sun)
+        self.slider_intensity.setVisible(is_sun)
