@@ -315,6 +315,18 @@ class MainWindow(QMainWindow):
         self.btn_run_sgd.clicked.connect(self.toggle_sgd)
         form_sgd.addRow("", self.btn_run_sgd)
 
+        self.lbl_sgd_pos = QLabel("Current Position:\nX (w1): --\nY (w2): --\nLoss: --")
+        self.lbl_sgd_pos.setStyleSheet(
+            "color: #ffca28; "
+            "font-family: 'Consolas', monospace; "
+            "font-size: 14px; "
+            "font-weight: bold; "
+            "background-color: #222; "
+            "padding: 10px; "
+            "border-radius: 5px;"
+        )
+
+        form_sgd.addRow(self.lbl_sgd_pos)
         layout_sgd.addLayout(form_sgd)
         layout_sgd.addStretch()
         tabs.addTab(tab_sgd, "SGD Sim")
@@ -375,6 +387,7 @@ class MainWindow(QMainWindow):
                     return 0
             
             surface = FunctionSurface(VERTEX_GLSL, FRAGMENT_GLSL, func=temp_func).setup()
+            surface.render_mode = 6
             surface.canvas = self.gl_canvas
             self.gl_canvas.objects.append(surface)
             self.lst_objects.addItem(f"f(x,y): {expr}")
@@ -485,7 +498,7 @@ class MainWindow(QMainWindow):
                 break
 
         if surface_idx == -1:
-            print("Hãy vẽ một Mặt phẳng Toán học (Math Surface) trước khi thả bi!")
+            print("Draw a Math Surface before dropping the ball!")
             return
 
         self.target_surface_idx = surface_idx
@@ -494,7 +507,7 @@ class MainWindow(QMainWindow):
         self.gl_canvas.makeCurrent()
         ball = CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
         ball.canvas = self.gl_canvas
-        ball.render_mode = 2 
+        ball.render_mode = 1
         ball.flat_color = np.array([1.0, 0.2, 0.2], dtype=np.float32)
         ball.scale = [0.15, 0.15, 0.15] 
 
@@ -506,9 +519,12 @@ class MainWindow(QMainWindow):
 
         self.gl_canvas.objects.append(ball)
         self.sgd_ball_idx = len(self.gl_canvas.objects) - 1
-        self.lst_objects.addItem("🔴 SGD Agent (Bi)")
-        
+        self.lst_objects.addItem("SGD Agent")
         self.lst_objects.setCurrentRow(self.sgd_ball_idx)
+        
+        loss_val = surface.get_real_z(start_x, start_y)
+        self.lbl_sgd_pos.setText(f"Current Position:\nX (w1): {start_x:.5f}\nY (w2): {start_y:.5f}\nLoss:   {loss_val:.5f}")
+        
         self.gl_canvas.doneCurrent()
         self.gl_canvas.update()
 
@@ -532,10 +548,12 @@ class MainWindow(QMainWindow):
             new_y = max(-5.0, min(5.0, new_y))
             new_z = surface.get_visual_z(new_x, new_y)
             ball.translation = [new_x, new_z + 0.15, new_y]
+            loss_val = surface.get_real_z(new_x, new_y)
+            self.lbl_sgd_pos.setText(f"Current Position:\nX (w1): {new_x:.5f}\nY (w2): {new_y:.5f}\nLoss:   {loss_val:.5f}")
             ball.update_model_matrix()
             
         except Exception as e:
-            print("Lỗi tính toán SGD:", e)
+            print("Error calculate SGD:", e)
             self.is_sgd_running = False
 
     def on_loss_func_changed(self, index):

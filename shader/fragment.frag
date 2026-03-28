@@ -95,7 +95,7 @@ void main() {
             topoColor = mix(c_dirt, c_snow, (t - 0.66) / 0.34);
         }
         
-        float f = fract(h * density);
+        float f = fract(h * density + 0.5);
         if (f < lineThickness) {
             FragColor = vec4(0.1, 0.1, 0.1, 1.0);
         } else {
