@@ -38,6 +38,11 @@ FRAGMENT_GLSL = "./shader/fragment.frag"
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.is_sgd_running = False
+        self.sgd_ball_idx = -1
+        self.target_surface_idx = -1
+
         self.setWindowTitle("CG Assignment - Advanced 3D Viewer")
         self.resize(1280, 800)
         self.apply_dark_theme()
@@ -68,6 +73,7 @@ class MainWindow(QMainWindow):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.gl_canvas.update)
+        self.timer.timeout.connect(self.sgd_step)
         self.timer.start(16) 
 
     def add_sun(self):
@@ -234,9 +240,23 @@ class MainWindow(QMainWindow):
 
         tab_math = QWidget()
         layout_math = QVBoxLayout(tab_math)
-        layout_math.addWidget(QLabel("Enter mathematical functions z = f(x, y):"))
-        self.txt_func = QLineEdit("(x**2+y-11)**2 + (x+y**2-7)**2")
-        btn_draw_func = QPushButton("Drawing the Jaw Surface")
+        
+        layout_math.addWidget(QLabel("Predefined Loss Functions:"))
+        self.cb_loss_funcs = QComboBox()
+        self.cb_loss_funcs.addItems([
+            "Himmelblau Function", 
+            "Rosenbrock Function (a=1, b=100)", 
+            "Booth Function",
+            "quadratic 2D",
+            "Custom",
+        ])
+        self.cb_loss_funcs.currentIndexChanged.connect(self.on_loss_func_changed)
+        layout_math.addWidget(self.cb_loss_funcs)
+
+        layout_math.addWidget(QLabel("Mathematical function z = f(x, y):"))
+        self.txt_func = QLineEdit("(x**2 + y - 11)**2 + (x + y**2 - 7)**2")
+        
+        btn_draw_func = QPushButton("Draw Surface")
         btn_draw_func.clicked.connect(self.draw_function)
         
         layout_math.addWidget(self.txt_func)
@@ -277,6 +297,27 @@ class MainWindow(QMainWindow):
         
         layout_env.addStretch()
         tabs.addTab(tab_env, "Environment")
+
+        tab_sgd = QWidget()
+        layout_sgd = QVBoxLayout(tab_sgd)
+        form_sgd = QFormLayout()
+
+        self.txt_lr = QLineEdit("0.01")
+        form_sgd.addRow("Learning Rate (η):", self.txt_lr)
+
+        self.btn_spawn_ball = QPushButton("Spawn Agent")
+        self.btn_spawn_ball.setStyleSheet("background-color: #c62828; color: white; font-weight: bold;")
+        self.btn_spawn_ball.clicked.connect(self.spawn_sgd_ball)
+        form_sgd.addRow("", self.btn_spawn_ball)
+
+        self.btn_run_sgd = QPushButton("Run / Pause SGD")
+        self.btn_run_sgd.setStyleSheet("background-color: #2e7d32; color: white; font-weight: bold;")
+        self.btn_run_sgd.clicked.connect(self.toggle_sgd)
+        form_sgd.addRow("", self.btn_run_sgd)
+
+        layout_sgd.addLayout(form_sgd)
+        layout_sgd.addStretch()
+        tabs.addTab(tab_sgd, "SGD Sim")
 
         dock.setWidget(tabs)
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
@@ -435,3 +476,77 @@ class MainWindow(QMainWindow):
         self.btn_light_color.setVisible(is_sun)
         self.lbl_intensity.setVisible(is_sun)
         self.slider_intensity.setVisible(is_sun)
+
+    def spawn_sgd_ball(self):
+        surface_idx = -1
+        for i, obj in enumerate(self.gl_canvas.objects):
+            if type(obj).__name__ == 'FunctionSurface':
+                surface_idx = i
+                break
+
+        if surface_idx == -1:
+            print("Hãy vẽ một Mặt phẳng Toán học (Math Surface) trước khi thả bi!")
+            return
+
+        self.target_surface_idx = surface_idx
+        surface = self.gl_canvas.objects[surface_idx]
+
+        self.gl_canvas.makeCurrent()
+        ball = CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
+        ball.canvas = self.gl_canvas
+        ball.render_mode = 2 
+        ball.flat_color = np.array([1.0, 0.2, 0.2], dtype=np.float32)
+        ball.scale = [0.15, 0.15, 0.15] 
+
+        start_x, start_y = 3.0, 3.0
+        start_z = surface.get_visual_z(start_x, start_y)
+
+        ball.translation = [start_x, start_z + 0.15, start_y]
+        ball.update_model_matrix()
+
+        self.gl_canvas.objects.append(ball)
+        self.sgd_ball_idx = len(self.gl_canvas.objects) - 1
+        self.lst_objects.addItem("🔴 SGD Agent (Bi)")
+        
+        self.lst_objects.setCurrentRow(self.sgd_ball_idx)
+        self.gl_canvas.doneCurrent()
+        self.gl_canvas.update()
+
+    def toggle_sgd(self):
+        self.is_sgd_running = not self.is_sgd_running
+
+    def sgd_step(self):
+        if not self.is_sgd_running or self.sgd_ball_idx == -1 or self.target_surface_idx == -1:
+            return
+
+        try:
+            ball = self.gl_canvas.objects[self.sgd_ball_idx]
+            surface = self.gl_canvas.objects[self.target_surface_idx]
+            x = ball.translation[0]
+            y = ball.translation[2] 
+            grad_x, grad_y = surface.get_gradient(x, y)
+            lr = float(self.txt_lr.text())
+            new_x = x - lr * grad_x
+            new_y = y - lr * grad_y
+            new_x = max(-5.0, min(5.0, new_x))
+            new_y = max(-5.0, min(5.0, new_y))
+            new_z = surface.get_visual_z(new_x, new_y)
+            ball.translation = [new_x, new_z + 0.15, new_y]
+            ball.update_model_matrix()
+            
+        except Exception as e:
+            print("Lỗi tính toán SGD:", e)
+            self.is_sgd_running = False
+
+    def on_loss_func_changed(self, index):
+        if index == 0:
+            self.txt_func.setText("(x**2 + y - 11)**2 + (x + y**2 - 7)**2")
+        elif index == 1:
+            # Rosenbrock (Banana): a=1, b=100. Đáy thung lũng hẹp.
+            self.txt_func.setText("(1 - x)**2 + 100 * (y - x**2)**2")
+        elif index == 2:
+            self.txt_func.setText("(x + 2*y - 7)**2 + (2*x + y - 5)**2")
+        elif index == 3:
+            self.txt_func.setText("x**2 + y**2")
+        else:
+            self.txt_func.setText("")
