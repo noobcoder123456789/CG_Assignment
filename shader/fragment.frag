@@ -9,12 +9,12 @@ out vec4 FragColor;
 uniform int u_RenderMode;
 uniform vec3 u_FlatColor;
 uniform sampler2D u_Texture;
-uniform float u_LightIntensity;
 
 #define MAX_LIGHTS 10
 uniform vec3 lightPos[MAX_LIGHTS];
 uniform vec3 lightColor[MAX_LIGHTS];
 uniform int lightState[MAX_LIGHTS];
+uniform float lightIntensity[MAX_LIGHTS];
 
 const vec3 viewPos = vec3(0.0, 0.0, 0.0);
 uniform float near_plane = 0.1;
@@ -46,8 +46,8 @@ void main() {
             vec3 specular = specularStrength * spec * lightColor[i];
             
             ambient *= attenuation;
-            diffuse *= (attenuation * u_LightIntensity); 
-            specular *= (attenuation * u_LightIntensity);
+            diffuse *= (attenuation * lightIntensity[i]); 
+            specular *= (attenuation * lightIntensity[i]);
             
             result_base += (ambient + diffuse);
             result_specular += specular;

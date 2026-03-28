@@ -251,7 +251,7 @@ class LightingManager:
         self.uma.upload_uniform_vector3fv(pos_view_3, 'u_SunPos')
         self.uma.upload_uniform_scalar1i(has_sun, 'u_HasSun')
 
-    def setup_multi_suns(self, view_matrix, light_positions, light_colors, light_states):
+    def setup_multi_suns(self, view_matrix, light_positions, light_colors, light_states, light_intensities):
         GL.glUseProgram(self.uma.shader.render_idx)
         MAX_LIGHTS = 10
         
@@ -264,5 +264,8 @@ class LightingManager:
                 self.uma.upload_uniform_vector3fv(pos_view_3, f'lightPos[{i}]')
                 self.uma.upload_uniform_vector3fv(light_colors[i], f'lightColor[{i}]')
                 self.uma.upload_uniform_scalar1i(1, f'lightState[{i}]')
+
+                intensity = light_intensities[i] if i < len(light_intensities) else 10.0
+                self.uma.upload_uniform_scalar1f(intensity, f'lightIntensity[{i}]')
             else:
                 self.uma.upload_uniform_scalar1i(0, f'lightState[{i}]')

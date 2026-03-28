@@ -51,11 +51,13 @@ class OpenGLCanvas(QOpenGLWidget):
         self.light_positions = []
         self.light_colors = []
         self.light_states = []
+        self.light_intensities = []
         for obj in self.objects:
             if type(obj).__name__ == 'SunObject':
                 self.light_positions.append(obj.translation.copy())
                 self.light_colors.append(obj.flat_color.copy())
                 self.light_states.append(1)
+                self.light_intensities.append(getattr(obj, 'intensity', 50.0))
 
         if self.axis:
             self.axis.draw(projection, view, self.axis.model_matrix)

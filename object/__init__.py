@@ -82,18 +82,16 @@ class Object(ABC):
         light_positions = []
         light_colors = []
         light_states = []
-        light_intensity = 50.0
+        light_intensities = []
         
         if hasattr(self, 'canvas'):
             light_positions = getattr(self.canvas, 'light_positions', [])
             light_colors = getattr(self.canvas, 'light_colors', [])
             light_states = getattr(self.canvas, 'light_states', [])
-            light_intensity = getattr(self.canvas, 'light_intensity', 50.0)
-
-        self.uma.upload_uniform_scalar1f(light_intensity, "u_LightIntensity")
+            light_intensities = getattr(self.canvas, 'light_intensities', [])
 
         if hasattr(self, 'lighting'):
-            self.lighting.setup_multi_suns(view, light_positions, light_colors, light_states)
+            self.lighting.setup_multi_suns(view, light_positions, light_colors, light_states, light_intensities)
 
         if self.is_wireframe:
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)

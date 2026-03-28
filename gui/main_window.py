@@ -77,6 +77,7 @@ class MainWindow(QMainWindow):
             sun.canvas = self.gl_canvas
             sun.render_mode = 0 
             sun.flat_color = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+            sun.intensity = 50.0
             sun.scale = [0.3, 0.3, 0.3]
             sun.translation = [2.0, 3.0, 2.0]
             if hasattr(sun, 'update_model_matrix'):
@@ -259,7 +260,7 @@ class MainWindow(QMainWindow):
         btn_add_sun.clicked.connect(self.add_sun)
         layout_env.addWidget(btn_add_sun)
 
-        btn_light_color = QPushButton("Change light source color (Select light source)")
+        btn_light_color = QPushButton("Change light color")
         btn_light_color.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
         btn_light_color.clicked.connect(self.pick_light_color)
         layout_env.addWidget(btn_light_color)
@@ -372,6 +373,11 @@ class MainWindow(QMainWindow):
             obj = self.gl_canvas.objects[index]
             self.cb_mode.setCurrentIndex(obj.render_mode)
             self.chk_wireframe.setChecked(obj.is_wireframe)
+            
+            if type(obj).__name__ == 'SunObject' and hasattr(obj, 'intensity'):
+                self.slider_intensity.blockSignals(True)
+                self.slider_intensity.setValue(int(obj.intensity))
+                self.slider_intensity.blockSignals(False)
 
     def update_object_props(self, *args):
         idx = self.gl_canvas.selected_idx
@@ -393,8 +399,12 @@ class MainWindow(QMainWindow):
                 self.gl_canvas.update()
 
     def change_intensity(self, value):
-        self.gl_canvas.light_intensity = float(value)
-        self.gl_canvas.update()
+        idx = self.gl_canvas.selected_idx
+        if 0 <= idx < len(self.gl_canvas.objects):
+            obj = self.gl_canvas.objects[idx]
+            if type(obj).__name__ == 'SunObject':
+                obj.intensity = float(value)
+                self.gl_canvas.update()
 
     def change_camera(self, index):
         self.gl_canvas.current_cam_idx = index
