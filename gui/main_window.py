@@ -539,10 +539,10 @@ class MainWindow(QMainWindow):
         algo = self.cb_algo.currentText()
         
         algo_colors = {
-            "Gradient Descent": [1.0, 0.2, 0.2],
-            "SGD (Noisy)": [0.2, 0.8, 0.2],
-            "Momentum": [0.2, 0.4, 1.0],
-            "Adam": [1.0, 0.8, 0.2]
+            "Gradient Descent": [0.0, 1.0, 0.0],
+            "SGD (Noisy)": [0.0, 0.0, 1.0],
+            "Momentum": [0.5, 0.5, 0.5],
+            "Adam": [1.0, 0.0, 0.0]
         }
 
         color = algo_colors.get(algo, [1.0, 1.0, 1.0])
