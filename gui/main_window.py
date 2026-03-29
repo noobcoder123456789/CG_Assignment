@@ -330,17 +330,21 @@ class MainWindow(QMainWindow):
         self.slider_speed.setValue(1)
         form_sgd.addRow("Speed (x times):", self.slider_speed)
 
-        self.btn_spawn_ball = QPushButton("🔴 Add Agent")
+        self.chk_slowmo = QCheckBox("Slow Motion (Detail)")
+        self.chk_slowmo.setStyleSheet("color: #ffb300; font-weight: bold;")
+        form_sgd.addRow("", self.chk_slowmo)
+
+        self.btn_spawn_ball = QPushButton("Add Agent")
         self.btn_spawn_ball.setStyleSheet("background-color: #c62828; color: white; font-weight: bold;")
         self.btn_spawn_ball.clicked.connect(self.spawn_sgd_ball)
         form_sgd.addRow("", self.btn_spawn_ball)
 
-        self.btn_run_sgd = QPushButton("▶️ Run / Pause")
+        self.btn_run_sgd = QPushButton("Run / Pause")
         self.btn_run_sgd.setStyleSheet("background-color: #2e7d32; color: white; font-weight: bold;")
         self.btn_run_sgd.clicked.connect(self.toggle_sgd)
         form_sgd.addRow("", self.btn_run_sgd)
 
-        self.btn_reset_sgd = QPushButton("🔄 Reset All")
+        self.btn_reset_sgd = QPushButton("Reset All")
         self.btn_reset_sgd.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
         self.btn_reset_sgd.clicked.connect(self.reset_sgd)
         form_sgd.addRow("", self.btn_reset_sgd)
@@ -544,7 +548,6 @@ class MainWindow(QMainWindow):
         start_x, start_y = 3.0, 3.0
         start_z = surface.get_visual_z(start_x, start_y)
 
-        # ĐỒNG BỘ WORLD SPACE: Áp dụng cả Scale và Translation của mặt phẳng cho Bi
         world_x = start_x * surface.scale[0] + surface.translation[0]
         world_y = start_z * surface.scale[1] + surface.translation[1]
         world_z = start_y * surface.scale[2] + surface.translation[2]
@@ -574,7 +577,6 @@ class MainWindow(QMainWindow):
                         bx = agent['ball'].translation[0]
                         by = agent['ball'].translation[2]
                         
-                        # CHUYỂN NGƯỢC TỪ WORLD VỀ LOCAL ĐỂ CHECK XEM USER CÓ KÉO BI KHÔNG
                         local_x = (bx - surface.translation[0]) / surface.scale[0]
                         local_y = (by - surface.translation[2]) / surface.scale[2]
                         
@@ -641,7 +643,20 @@ class MainWindow(QMainWindow):
             lr = float(self.txt_lr.text())
             mom = float(self.txt_momentum.text())
             max_iters = int(self.txt_max_iters.text())
-            steps = self.slider_speed.value()
+            
+            if hasattr(self, 'chk_slowmo') and self.chk_slowmo.isChecked():
+                if not hasattr(self, 'frame_skip_counter'): 
+                    self.frame_skip_counter = 0
+                
+                self.frame_skip_counter += 1
+                if self.frame_skip_counter < 15: 
+                    self.gl_canvas.doneCurrent()
+                    return
+                
+                self.frame_skip_counter = 0
+                steps = 1
+            else:
+                steps = self.slider_speed.value()
 
             for _ in range(steps):
                 for agent in self.agents:
@@ -687,7 +702,6 @@ class MainWindow(QMainWindow):
                         new_x = x - lr * m_hat_x / (np.sqrt(v_hat_x) + eps)
                         new_y = y - lr * m_hat_y / (np.sqrt(v_hat_y) + eps)
 
-                    # TỰ ĐỘNG CHẶN BI LỌT RA KHỎI BẢN ĐỒ
                     new_x = max(surface.x_range[0], min(surface.x_range[1], new_x))
                     new_y = max(surface.y_range[0], min(surface.y_range[1], new_y))
                     agent['x'], agent['y'] = new_x, new_y
@@ -695,7 +709,6 @@ class MainWindow(QMainWindow):
                     if _ == steps - 1 or not agent['active']:
                         new_z = surface.get_visual_z(new_x, new_y)
                         
-                        # CẬP NHẬT TỌA ĐỘ THEO NAM CHÂM KHÔNG GIAN (BAO GỒM SCALE VÀ KÉO THẢ)
                         world_x = new_x * surface.scale[0] + surface.translation[0]
                         world_y = new_z * surface.scale[1] + surface.translation[1]
                         world_z = new_y * surface.scale[2] + surface.translation[2]
