@@ -18,7 +18,8 @@ class TrajectoryObject(Object):
 
         self.vertices.append([x, y, z])
         self.indices.append(len(self.vertices) - 1)
-        
+
+    def update_buffer(self):
         if len(self.vertices) > 1:
             v_np = np.array(self.vertices, dtype=np.float32)
             i_np = np.array(self.indices, dtype=np.uint32)

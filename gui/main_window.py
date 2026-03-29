@@ -554,13 +554,21 @@ class MainWindow(QMainWindow):
 
         ball.translation = [world_x, world_y + 0.15, world_z]
         ball.update_model_matrix()
-        traj.add_point(world_x, world_y + 0.05, world_z)
+        # Nâng quỹ đạo lên +0.15 để cắm chính giữa tâm quả bóng!
+        traj.add_point(world_x, world_y + 0.15, world_z)
+        traj.update_buffer()
+        
         self.gl_canvas.objects.extend([ball, traj])
+        
+        current_lr = float(self.txt_lr.text())
+        current_mom = float(self.txt_momentum.text())
+        current_max_iters = int(self.txt_max_iters.text())
         
         agent = {
             'algo': algo, 'ball': ball, 'traj': traj, 'color': color,
             'x': start_x, 'y': start_y, 'start_x': start_x, 'start_y': start_y,
-            't': 0, 'v_x': 0.0, 'v_y': 0.0, 'm_x': 0.0, 'm_y': 0.0, 'active': True
+            't': 0, 'v_x': 0.0, 'v_y': 0.0, 'm_x': 0.0, 'm_y': 0.0, 'active': True,
+            'lr': current_lr, 'mom': current_mom, 'max_iters': current_max_iters
         }
         self.agents.append(agent)
         self.lst_objects.addItem(f"[{algo[:4]}] Agent")
@@ -584,8 +592,7 @@ class MainWindow(QMainWindow):
                             agent['x'] = agent['start_x'] = local_x
                             agent['y'] = agent['start_y'] = local_y
                             agent['t'] = 0
-                            agent['v_x'] = agent['v_y'] = 0.0
-                            agent['m_x'] = agent['m_y'] = 0.0
+                            agent['v_x'] = agent['v_y'] = agent['m_x'] = agent['m_y'] = 0.0
                             agent['active'] = True
                             agent['traj'].vertices = []
                             agent['traj'].indices = []
@@ -594,7 +601,8 @@ class MainWindow(QMainWindow):
                             world_y = z * surface.scale[1] + surface.translation[1]
                             agent['ball'].translation = [bx, world_y + 0.15, by]
                             agent['ball'].update_model_matrix()
-                            agent['traj'].add_point(bx, world_y + 0.05, by)
+                            agent['traj'].add_point(bx, world_y + 0.15, by)
+                            agent['traj'].update_buffer()
                             
                     self.gl_canvas.doneCurrent()
                     self.gl_canvas.update()
@@ -622,7 +630,8 @@ class MainWindow(QMainWindow):
 
                 agent['ball'].translation = [world_x, world_y + 0.15, world_z]
                 agent['ball'].update_model_matrix()
-                agent['traj'].add_point(world_x, world_y + 0.05, world_z)
+                agent['traj'].add_point(world_x, world_y + 0.15, world_z)
+                agent['traj'].update_buffer()
         finally:
             self.gl_canvas.doneCurrent()
         self.gl_canvas.update()
@@ -640,27 +649,27 @@ class MainWindow(QMainWindow):
 
         self.gl_canvas.makeCurrent()
         try:
-            lr = float(self.txt_lr.text())
-            mom = float(self.txt_momentum.text())
-            max_iters = int(self.txt_max_iters.text())
-            
             if hasattr(self, 'chk_slowmo') and self.chk_slowmo.isChecked():
                 if not hasattr(self, 'frame_skip_counter'): 
                     self.frame_skip_counter = 0
-                
                 self.frame_skip_counter += 1
                 if self.frame_skip_counter < 15: 
                     self.gl_canvas.doneCurrent()
                     return
-                
                 self.frame_skip_counter = 0
                 steps = 1
             else:
                 steps = self.slider_speed.value()
 
+            # Ghi nhận TỪNG BƯỚC MỘT vào danh sách (Không bỏ qua bước nào để quỹ đạo cong mượt)
             for _ in range(steps):
                 for agent in self.agents:
                     if not agent['active']: continue
+
+                    lr = agent['lr']
+                    mom = agent['mom']
+                    max_iters = agent['max_iters']
+
                     if agent['t'] >= max_iters:
                         agent['active'] = False
                         continue
@@ -706,16 +715,19 @@ class MainWindow(QMainWindow):
                     new_y = max(surface.y_range[0], min(surface.y_range[1], new_y))
                     agent['x'], agent['y'] = new_x, new_y
 
-                    if _ == steps - 1 or not agent['active']:
-                        new_z = surface.get_visual_z(new_x, new_y)
-                        
-                        world_x = new_x * surface.scale[0] + surface.translation[0]
-                        world_y = new_z * surface.scale[1] + surface.translation[1]
-                        world_z = new_y * surface.scale[2] + surface.translation[2]
+                    # Cập nhật liên tục để vẽ Line theo sát bóng
+                    new_z = surface.get_visual_z(new_x, new_y)
+                    world_x = new_x * surface.scale[0] + surface.translation[0]
+                    world_y = new_z * surface.scale[1] + surface.translation[1]
+                    world_z = new_y * surface.scale[2] + surface.translation[2]
 
-                        agent['ball'].translation = [world_x, world_y + 0.15, world_z]
-                        agent['ball'].update_model_matrix()
-                        agent['traj'].add_point(world_x, world_y + 0.05, world_z)
+                    agent['ball'].translation = [world_x, world_y + 0.15, world_z]
+                    agent['traj'].add_point(world_x, world_y + 0.15, world_z)
+
+            # Cập nhật dữ liệu lên màn hình (Card đồ họa) 1 lần duy nhất để không bị tụt FPS
+            for agent in self.agents:
+                agent['ball'].update_model_matrix()
+                agent['traj'].update_buffer()
 
             info_text = "Live Telemetry:\n"
             for agent in self.agents:
@@ -748,31 +760,23 @@ class MainWindow(QMainWindow):
             self.txt_func.setText("")
 
     def move_agents_to(self, wx, wy, wz):
-        if not self.agents or self.target_surface_idx == -1:
-            return
+        if not self.agents or self.target_surface_idx == -1: return
         
         surface = self.gl_canvas.objects[self.target_surface_idx]
-        if type(surface).__name__ != 'FunctionSurface':
-            return
+        if type(surface).__name__ != 'FunctionSurface': return
 
         local_x = (wx - surface.translation[0]) / surface.scale[0]
         local_y = (wz - surface.translation[2]) / surface.scale[2]
 
-        if not (
-            surface.x_range[0] <= local_x <= surface.x_range[1]
-            and surface.y_range[0] <= local_y <= surface.y_range[1]
-        ):
+        if not (surface.x_range[0] <= local_x <= surface.x_range[1] and surface.y_range[0] <= local_y <= surface.y_range[1]):
             return
 
         for agent in self.agents:
             agent['x'] = agent['start_x'] = local_x
             agent['y'] = agent['start_y'] = local_y
-            
             agent['t'] = 0
-            agent['v_x'] = agent['v_y'] = 0.0
-            agent['m_x'] = agent['m_y'] = 0.0
+            agent['v_x'] = agent['v_y'] = agent['m_x'] = agent['m_y'] = 0.0
             agent['active'] = True
-            
             agent['traj'].vertices = []
             agent['traj'].indices = []
             
@@ -781,6 +785,7 @@ class MainWindow(QMainWindow):
             
             agent['ball'].translation = [wx, world_y_snap + 0.15, wz]
             agent['ball'].update_model_matrix()
-            agent['traj'].add_point(wx, world_y_snap + 0.05, wz)
+            agent['traj'].add_point(wx, world_y_snap + 0.15, wz)
+            agent['traj'].update_buffer()
 
         self.lbl_sgd_pos.setText(f"Moved Agents to: X={local_x:.2f}, Y={local_y:.2f}\nReady to Run!")
