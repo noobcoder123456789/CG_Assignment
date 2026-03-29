@@ -313,16 +313,20 @@ class MainWindow(QMainWindow):
 
         self.cb_algo = QComboBox()
         self.cb_algo.addItems(["Gradient Descent", "SGD (Noisy)", "Momentum", "Adam"])
+        self.cb_algo.currentIndexChanged.connect(self.on_algo_changed)
         form_sgd.addRow("Algorithm:", self.cb_algo)
 
         self.txt_lr = QLineEdit("0.01")
         form_sgd.addRow("Learning Rate:", self.txt_lr)
 
+        self.lbl_momentum = QLabel("Momentum/Beta:")
         self.txt_momentum = QLineEdit("0.9")
-        form_sgd.addRow("Momentum/Beta:", self.txt_momentum)
+        form_sgd.addRow(self.lbl_momentum, self.txt_momentum)
 
         self.txt_max_iters = QLineEdit("1000")
         form_sgd.addRow("Max Iterations:", self.txt_max_iters)
+        
+        self.on_algo_changed()
 
         self.slider_speed = QSlider(Qt.Horizontal)
         self.slider_speed.setMinimum(1)
@@ -532,8 +536,16 @@ class MainWindow(QMainWindow):
         self.target_surface_idx = surface_idx
         surface = self.gl_canvas.objects[surface_idx]
 
-        color = self.colors_pool[len(self.agents) % len(self.colors_pool)]
         algo = self.cb_algo.currentText()
+        
+        algo_colors = {
+            "Gradient Descent": [1.0, 0.2, 0.2],
+            "SGD (Noisy)": [0.2, 0.8, 0.2],
+            "Momentum": [0.2, 0.4, 1.0],
+            "Adam": [1.0, 0.8, 0.2]
+        }
+
+        color = algo_colors.get(algo, [1.0, 1.0, 1.0])
         self.gl_canvas.makeCurrent()
         
         ball = CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
@@ -554,7 +566,6 @@ class MainWindow(QMainWindow):
 
         ball.translation = [world_x, world_y + 0.15, world_z]
         ball.update_model_matrix()
-        # Nâng quỹ đạo lên +0.15 để cắm chính giữa tâm quả bóng!
         traj.add_point(world_x, world_y + 0.15, world_z)
         traj.update_buffer()
         
@@ -789,3 +800,12 @@ class MainWindow(QMainWindow):
             agent['traj'].update_buffer()
 
         self.lbl_sgd_pos.setText(f"Moved Agents to: X={local_x:.2f}, Y={local_y:.2f}\nReady to Run!")
+
+    def on_algo_changed(self, *args):
+        algo = self.cb_algo.currentText()
+        if algo in ["Gradient Descent", "SGD (Noisy)"]:
+            self.lbl_momentum.setVisible(False)
+            self.txt_momentum.setVisible(False)
+        else:
+            self.lbl_momentum.setVisible(True)
+            self.txt_momentum.setVisible(True)
