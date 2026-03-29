@@ -449,16 +449,36 @@ class MainWindow(QMainWindow):
     def delete_selected(self):
         idx = self.gl_canvas.selected_idx
         if 0 <= idx < len(self.gl_canvas.objects):
+            obj_to_delete = self.gl_canvas.objects[idx]
+            agent_to_remove = None
+            for agent in self.agents:
+                if agent['ball'] == obj_to_delete or agent['traj'] == obj_to_delete:
+                    agent_to_remove = agent
+                    break
+                    
+            if agent_to_remove:
+                self.agents.remove(agent_to_remove)
+
             self.gl_canvas.objects.pop(idx)
             self.lst_objects.takeItem(idx)
             self.gl_canvas.selected_idx = -1
             self.update_inspector_ui()
+            
+            if not self.agents:
+                self.lbl_sgd_pos.setText("Live Telemetry:\nWaiting for agents...")
+                self.is_sgd_running = False
+                
+            self.gl_canvas.update()
 
     def clear_scene(self):
         self.gl_canvas.objects.clear()
         self.lst_objects.clear()
         self.gl_canvas.selected_idx = -1
+        self.agents.clear()
+        self.is_sgd_running = False
+        self.lbl_sgd_pos.setText("Live Telemetry:\nWaiting for agents...")
         self.update_inspector_ui()
+        self.gl_canvas.update()
 
     def on_object_selected(self, index):
         self.gl_canvas.selected_idx = index
@@ -569,7 +589,11 @@ class MainWindow(QMainWindow):
         traj.add_point(world_x, world_y + 0.15, world_z)
         traj.update_buffer()
         
-        self.gl_canvas.objects.extend([ball, traj])
+        self.gl_canvas.objects.append(ball)
+        self.lst_objects.addItem(f"[{algo[:4]}] Ball")
+        
+        self.gl_canvas.objects.append(traj)
+        self.lst_objects.addItem(f"[{algo[:4]}] Traj Line")
         
         current_lr = float(self.txt_lr.text())
         current_mom = float(self.txt_momentum.text())
