@@ -3,8 +3,11 @@ import OpenGL.GL as GL
 from .. import Object
 
 class FunctionSurface(Object):
-    def __init__(self, vert_shader, frag_shader, func, x_range=(-5, 5), y_range=(-5, 5), resolution=100):
+    def __init__(self, vert_shader, frag_shader, func, x_range=(-10, 10), y_range=(-10, 10), resolution=100):
         super().__init__(vert_shader, frag_shader)
+
+        self.x_range = x_range
+        self.y_range = y_range
         
         self.vertices = []
         self.colors = []

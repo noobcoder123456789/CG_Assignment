@@ -29,6 +29,7 @@ from object.threeD.sun import SunObject
 from object.threeD.sphere import CoordinatesSphereObject, CubeSphereObject, TetrahedronSphereObject 
 from object.threeD.function_surface import FunctionSurface
 from object.threeD.mesh_object import MeshObject
+from object.threeD.trajectory import TrajectoryObject
 from gui.canvas import *
 
 
@@ -40,8 +41,15 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.is_sgd_running = False
-        self.sgd_ball_idx = -1
         self.target_surface_idx = -1
+        self.agents = []
+        self.colors_pool = [
+            [1.0, 0.2, 0.2],
+            [0.2, 0.8, 0.2],
+            [0.2, 0.4, 1.0],
+            [1.0, 0.8, 0.2],
+            [0.8, 0.2, 1.0],
+        ]
 
         self.setWindowTitle("CG Assignment - Advanced 3D Viewer")
         self.resize(1280, 800)
@@ -153,7 +161,8 @@ class MainWindow(QMainWindow):
             "Pan",
             "Translate", 
             "Rotate", 
-            "Scale"
+            "Scale",
+            "Place ball SGD (Click)",
         ])
 
         self.cb_tool.currentIndexChanged.connect(self.change_tool)
@@ -302,31 +311,48 @@ class MainWindow(QMainWindow):
         layout_sgd = QVBoxLayout(tab_sgd)
         form_sgd = QFormLayout()
 
-        self.txt_lr = QLineEdit("0.01")
-        form_sgd.addRow("Learning Rate (η):", self.txt_lr)
+        self.cb_algo = QComboBox()
+        self.cb_algo.addItems(["Gradient Descent", "SGD (Noisy)", "Momentum", "Adam"])
+        form_sgd.addRow("Algorithm:", self.cb_algo)
 
-        self.btn_spawn_ball = QPushButton("Spawn Agent")
+        self.txt_lr = QLineEdit("0.01")
+        form_sgd.addRow("Learning Rate:", self.txt_lr)
+
+        self.txt_momentum = QLineEdit("0.9")
+        form_sgd.addRow("Momentum/Beta:", self.txt_momentum)
+
+        self.txt_max_iters = QLineEdit("1000")
+        form_sgd.addRow("Max Iterations:", self.txt_max_iters)
+
+        self.slider_speed = QSlider(Qt.Horizontal)
+        self.slider_speed.setMinimum(1)
+        self.slider_speed.setMaximum(50)
+        self.slider_speed.setValue(1)
+        form_sgd.addRow("Speed (x times):", self.slider_speed)
+
+        self.btn_spawn_ball = QPushButton("🔴 Add Agent")
         self.btn_spawn_ball.setStyleSheet("background-color: #c62828; color: white; font-weight: bold;")
         self.btn_spawn_ball.clicked.connect(self.spawn_sgd_ball)
         form_sgd.addRow("", self.btn_spawn_ball)
 
-        self.btn_run_sgd = QPushButton("Run / Pause SGD")
+        self.btn_run_sgd = QPushButton("▶️ Run / Pause")
         self.btn_run_sgd.setStyleSheet("background-color: #2e7d32; color: white; font-weight: bold;")
         self.btn_run_sgd.clicked.connect(self.toggle_sgd)
         form_sgd.addRow("", self.btn_run_sgd)
 
-        self.lbl_sgd_pos = QLabel("Current Position:\nX (w1): --\nY (w2): --\nLoss: --")
-        self.lbl_sgd_pos.setStyleSheet(
-            "color: #ffca28; "
-            "font-family: 'Consolas', monospace; "
-            "font-size: 14px; "
-            "font-weight: bold; "
-            "background-color: #222; "
-            "padding: 10px; "
-            "border-radius: 5px;"
-        )
+        self.btn_reset_sgd = QPushButton("🔄 Reset All")
+        self.btn_reset_sgd.setStyleSheet("background-color: #0277bd; color: white; font-weight: bold;")
+        self.btn_reset_sgd.clicked.connect(self.reset_sgd)
+        form_sgd.addRow("", self.btn_reset_sgd)
 
+        self.lbl_sgd_pos = QLabel("Live Telemetry:\nWaiting for agents...")
+        self.lbl_sgd_pos.setStyleSheet(
+            "color: #ffca28; font-family: 'Consolas', monospace; "
+            "font-size: 13px; font-weight: bold; background-color: #222; "
+            "padding: 10px; border-radius: 5px;"
+        )
         form_sgd.addRow(self.lbl_sgd_pos)
+        
         layout_sgd.addLayout(form_sgd)
         layout_sgd.addStretch()
         tabs.addTab(tab_sgd, "SGD Sim")
@@ -497,70 +523,209 @@ class MainWindow(QMainWindow):
                 surface_idx = i
                 break
 
-        if surface_idx == -1:
-            print("Draw a Math Surface before dropping the ball!")
-            return
+        if surface_idx == -1: return
 
         self.target_surface_idx = surface_idx
         surface = self.gl_canvas.objects[surface_idx]
 
+        color = self.colors_pool[len(self.agents) % len(self.colors_pool)]
+        algo = self.cb_algo.currentText()
         self.gl_canvas.makeCurrent()
+        
         ball = CubeSphereObject(VERTEX_GLSL, FRAGMENT_GLSL).setup()
         ball.canvas = self.gl_canvas
         ball.render_mode = 1
-        ball.flat_color = np.array([1.0, 0.2, 0.2], dtype=np.float32)
+        ball.flat_color = np.array(color, dtype=np.float32)
         ball.scale = [0.15, 0.15, 0.15] 
+
+        traj = TrajectoryObject(VERTEX_GLSL, FRAGMENT_GLSL, color).setup()
+        traj.canvas = self.gl_canvas
 
         start_x, start_y = 3.0, 3.0
         start_z = surface.get_visual_z(start_x, start_y)
 
-        ball.translation = [start_x, start_z + 0.15, start_y]
-        ball.update_model_matrix()
+        # ĐỒNG BỘ WORLD SPACE: Áp dụng cả Scale và Translation của mặt phẳng cho Bi
+        world_x = start_x * surface.scale[0] + surface.translation[0]
+        world_y = start_z * surface.scale[1] + surface.translation[1]
+        world_z = start_y * surface.scale[2] + surface.translation[2]
 
-        self.gl_canvas.objects.append(ball)
-        self.sgd_ball_idx = len(self.gl_canvas.objects) - 1
-        self.lst_objects.addItem("SGD Agent")
-        self.lst_objects.setCurrentRow(self.sgd_ball_idx)
+        ball.translation = [world_x, world_y + 0.15, world_z]
+        ball.update_model_matrix()
+        traj.add_point(world_x, world_y + 0.05, world_z)
+        self.gl_canvas.objects.extend([ball, traj])
         
-        loss_val = surface.get_real_z(start_x, start_y)
-        self.lbl_sgd_pos.setText(f"Current Position:\nX (w1): {start_x:.5f}\nY (w2): {start_y:.5f}\nLoss:   {loss_val:.5f}")
-        
+        agent = {
+            'algo': algo, 'ball': ball, 'traj': traj, 'color': color,
+            'x': start_x, 'y': start_y, 'start_x': start_x, 'start_y': start_y,
+            't': 0, 'v_x': 0.0, 'v_y': 0.0, 'm_x': 0.0, 'm_y': 0.0, 'active': True
+        }
+        self.agents.append(agent)
+        self.lst_objects.addItem(f"[{algo[:4]}] Agent")
         self.gl_canvas.doneCurrent()
         self.gl_canvas.update()
 
     def toggle_sgd(self):
+        if not self.is_sgd_running:
+            if 0 <= self.target_surface_idx < len(self.gl_canvas.objects):
+                surface = self.gl_canvas.objects[self.target_surface_idx]
+                if type(surface).__name__ == 'FunctionSurface':
+                    self.gl_canvas.makeCurrent()
+                    for agent in self.agents:
+                        bx = agent['ball'].translation[0]
+                        by = agent['ball'].translation[2]
+                        
+                        # CHUYỂN NGƯỢC TỪ WORLD VỀ LOCAL ĐỂ CHECK XEM USER CÓ KÉO BI KHÔNG
+                        local_x = (bx - surface.translation[0]) / surface.scale[0]
+                        local_y = (by - surface.translation[2]) / surface.scale[2]
+                        
+                        if abs(local_x - agent['x']) > 0.01 or abs(local_y - agent['y']) > 0.01:
+                            agent['x'] = agent['start_x'] = local_x
+                            agent['y'] = agent['start_y'] = local_y
+                            agent['t'] = 0
+                            agent['v_x'] = agent['v_y'] = 0.0
+                            agent['m_x'] = agent['m_y'] = 0.0
+                            agent['active'] = True
+                            agent['traj'].vertices = []
+                            agent['traj'].indices = []
+                            
+                            z = surface.get_visual_z(local_x, local_y)
+                            world_y = z * surface.scale[1] + surface.translation[1]
+                            agent['ball'].translation = [bx, world_y + 0.15, by]
+                            agent['ball'].update_model_matrix()
+                            agent['traj'].add_point(bx, world_y + 0.05, by)
+                            
+                    self.gl_canvas.doneCurrent()
+                    self.gl_canvas.update()
+
         self.is_sgd_running = not self.is_sgd_running
 
+    def reset_sgd(self):
+        self.is_sgd_running = False
+        if self.target_surface_idx == -1: return
+        surface = self.gl_canvas.objects[self.target_surface_idx]
+        self.gl_canvas.makeCurrent()
+        try:
+            for agent in self.agents:
+                agent['x'], agent['y'] = agent['start_x'], agent['start_y']
+                agent['t'] = 0
+                agent['v_x'] = agent['v_y'] = agent['m_x'] = agent['m_y'] = 0.0
+                agent['active'] = True
+                agent['traj'].vertices = []
+                agent['traj'].indices = []
+                
+                z = surface.get_visual_z(agent['x'], agent['y'])
+                world_x = agent['x'] * surface.scale[0] + surface.translation[0]
+                world_y = z * surface.scale[1] + surface.translation[1]
+                world_z = agent['y'] * surface.scale[2] + surface.translation[2]
+
+                agent['ball'].translation = [world_x, world_y + 0.15, world_z]
+                agent['ball'].update_model_matrix()
+                agent['traj'].add_point(world_x, world_y + 0.05, world_z)
+        finally:
+            self.gl_canvas.doneCurrent()
+        self.gl_canvas.update()
+
     def sgd_step(self):
-        if not self.is_sgd_running or self.sgd_ball_idx == -1 or self.target_surface_idx == -1:
+        if not self.is_sgd_running or not self.agents: return
+        if self.target_surface_idx < 0 or self.target_surface_idx >= len(self.gl_canvas.objects):
+            self.is_sgd_running = False
+            return
+            
+        surface = self.gl_canvas.objects[self.target_surface_idx]
+        if type(surface).__name__ != 'FunctionSurface':
+            self.is_sgd_running = False
             return
 
+        self.gl_canvas.makeCurrent()
         try:
-            ball = self.gl_canvas.objects[self.sgd_ball_idx]
-            surface = self.gl_canvas.objects[self.target_surface_idx]
-            x = ball.translation[0]
-            y = ball.translation[2] 
-            grad_x, grad_y = surface.get_gradient(x, y)
             lr = float(self.txt_lr.text())
-            new_x = x - lr * grad_x
-            new_y = y - lr * grad_y
-            new_x = max(-5.0, min(5.0, new_x))
-            new_y = max(-5.0, min(5.0, new_y))
-            new_z = surface.get_visual_z(new_x, new_y)
-            ball.translation = [new_x, new_z + 0.15, new_y]
-            loss_val = surface.get_real_z(new_x, new_y)
-            self.lbl_sgd_pos.setText(f"Current Position:\nX (w1): {new_x:.5f}\nY (w2): {new_y:.5f}\nLoss:   {loss_val:.5f}")
-            ball.update_model_matrix()
-            
+            mom = float(self.txt_momentum.text())
+            max_iters = int(self.txt_max_iters.text())
+            steps = self.slider_speed.value()
+
+            for _ in range(steps):
+                for agent in self.agents:
+                    if not agent['active']: continue
+                    if agent['t'] >= max_iters:
+                        agent['active'] = False
+                        continue
+
+                    x, y = agent['x'], agent['y']
+                    grad_x, grad_y = surface.get_gradient(x, y)
+                    grad_x = np.clip(grad_x, -50.0, 50.0)
+                    grad_y = np.clip(grad_y, -50.0, 50.0)
+                    grad_mag = np.sqrt(grad_x**2 + grad_y**2)
+
+                    if grad_mag < 1e-5:
+                        agent['active'] = False
+                        continue
+
+                    agent['t'] += 1
+                    algo = agent['algo']
+
+                    if algo == "Gradient Descent":
+                        new_x = x - lr * grad_x
+                        new_y = y - lr * grad_y
+                    elif algo == "SGD (Noisy)":
+                        new_x = x - lr * (grad_x + np.random.normal(0, 0.5) * grad_x)
+                        new_y = y - lr * (grad_y + np.random.normal(0, 0.5) * grad_y)
+                    elif algo == "Momentum":
+                        agent['v_x'] = mom * agent['v_x'] + lr * grad_x
+                        agent['v_y'] = mom * agent['v_y'] + lr * grad_y
+                        new_x = x - agent['v_x']
+                        new_y = y - agent['v_y']
+                    elif algo == "Adam":
+                        b1, b2, eps = 0.9, 0.999, 1e-8
+                        agent['m_x'] = b1 * agent['m_x'] + (1 - b1) * grad_x
+                        agent['m_y'] = b1 * agent['m_y'] + (1 - b1) * grad_y
+                        agent['v_x'] = b2 * agent['v_x'] + (1 - b2) * (grad_x**2)
+                        agent['v_y'] = b2 * agent['v_y'] + (1 - b2) * (grad_y**2)
+                        m_hat_x = agent['m_x'] / (1 - b1**agent['t'])
+                        m_hat_y = agent['m_y'] / (1 - b1**agent['t'])
+                        v_hat_x = agent['v_x'] / (1 - b2**agent['t'])
+                        v_hat_y = agent['v_y'] / (1 - b2**agent['t'])
+                        new_x = x - lr * m_hat_x / (np.sqrt(v_hat_x) + eps)
+                        new_y = y - lr * m_hat_y / (np.sqrt(v_hat_y) + eps)
+
+                    # TỰ ĐỘNG CHẶN BI LỌT RA KHỎI BẢN ĐỒ
+                    new_x = max(surface.x_range[0], min(surface.x_range[1], new_x))
+                    new_y = max(surface.y_range[0], min(surface.y_range[1], new_y))
+                    agent['x'], agent['y'] = new_x, new_y
+
+                    if _ == steps - 1 or not agent['active']:
+                        new_z = surface.get_visual_z(new_x, new_y)
+                        
+                        # CẬP NHẬT TỌA ĐỘ THEO NAM CHÂM KHÔNG GIAN (BAO GỒM SCALE VÀ KÉO THẢ)
+                        world_x = new_x * surface.scale[0] + surface.translation[0]
+                        world_y = new_z * surface.scale[1] + surface.translation[1]
+                        world_z = new_y * surface.scale[2] + surface.translation[2]
+
+                        agent['ball'].translation = [world_x, world_y + 0.15, world_z]
+                        agent['ball'].update_model_matrix()
+                        agent['traj'].add_point(world_x, world_y + 0.05, world_z)
+
+            info_text = "Live Telemetry:\n"
+            for agent in self.agents:
+                algo = agent['algo']
+                t = agent['t']
+                loss_val = surface.get_real_z(agent['x'], agent['y'])
+                gx, gy = surface.get_gradient(agent['x'], agent['y'])
+                gmag = np.sqrt(gx**2 + gy**2)
+                info_text += f"[{algo[:4]}] T:{t:03d} | L:{loss_val:.2f} | Grad:{gmag:.2f}\n"
+
+            self.lbl_sgd_pos.setText(info_text)
+            self.gl_canvas.update()
+
         except Exception as e:
             print("Error calculate SGD:", e)
             self.is_sgd_running = False
+        finally:
+            self.gl_canvas.doneCurrent()
 
     def on_loss_func_changed(self, index):
         if index == 0:
             self.txt_func.setText("(x**2 + y - 11)**2 + (x + y**2 - 7)**2")
         elif index == 1:
-            # Rosenbrock (Banana): a=1, b=100. Đáy thung lũng hẹp.
             self.txt_func.setText("(1 - x)**2 + 100 * (y - x**2)**2")
         elif index == 2:
             self.txt_func.setText("(x + 2*y - 7)**2 + (2*x + y - 5)**2")
@@ -568,3 +733,41 @@ class MainWindow(QMainWindow):
             self.txt_func.setText("x**2 + y**2")
         else:
             self.txt_func.setText("")
+
+    def move_agents_to(self, wx, wy, wz):
+        if not self.agents or self.target_surface_idx == -1:
+            return
+        
+        surface = self.gl_canvas.objects[self.target_surface_idx]
+        if type(surface).__name__ != 'FunctionSurface':
+            return
+
+        local_x = (wx - surface.translation[0]) / surface.scale[0]
+        local_y = (wz - surface.translation[2]) / surface.scale[2]
+
+        if not (
+            surface.x_range[0] <= local_x <= surface.x_range[1]
+            and surface.y_range[0] <= local_y <= surface.y_range[1]
+        ):
+            return
+
+        for agent in self.agents:
+            agent['x'] = agent['start_x'] = local_x
+            agent['y'] = agent['start_y'] = local_y
+            
+            agent['t'] = 0
+            agent['v_x'] = agent['v_y'] = 0.0
+            agent['m_x'] = agent['m_y'] = 0.0
+            agent['active'] = True
+            
+            agent['traj'].vertices = []
+            agent['traj'].indices = []
+            
+            z = surface.get_visual_z(local_x, local_y)
+            world_y_snap = z * surface.scale[1] + surface.translation[1]
+            
+            agent['ball'].translation = [wx, world_y_snap + 0.15, wz]
+            agent['ball'].update_model_matrix()
+            agent['traj'].add_point(wx, world_y_snap + 0.05, wz)
+
+        self.lbl_sgd_pos.setText(f"Moved Agents to: X={local_x:.2f}, Y={local_y:.2f}\nReady to Run!")

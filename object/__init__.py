@@ -60,7 +60,9 @@ class Object(ABC):
             self.indices = np.array(self.indices, dtype=np.uint32)
 
         self.vao.add_vbo(0, self.vertices, ncomponents=3, stride=0, offset=None)
-        self.vao.add_vbo(1, self.colors, ncomponents=3, stride=0, offset=None)
+
+        if hasattr(self, 'colors') and self.colors is not None:
+            self.vao.add_vbo(1, self.colors, ncomponents=3, stride=0, offset=None)
 
         if hasattr(self, 'normals') and self.normals is not None:
             self.vao.add_vbo(2, self.normals, ncomponents=3, stride=0, offset=None)

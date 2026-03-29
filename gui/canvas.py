@@ -35,6 +35,10 @@ class OpenGLCanvas(QOpenGLWidget):
         self.current_tool = 0 
 
     def initializeGL(self):
+        print(f"OpenGL Version: {GL.glGetString(GL.GL_VERSION).decode()}")
+        print(f"GLSL Version:   {GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode()}")
+        print(f"RENDERER (GPU): {GL.glGetString(GL.GL_RENDERER).decode()}")
+
         GL.glClearColor(0.15, 0.15, 0.15, 1.0)
         GL.glEnable(GL.GL_DEPTH_TEST)
         self.axis = AxisObject().setup()
@@ -106,6 +110,22 @@ class OpenGLCanvas(QOpenGLWidget):
                     self.window().lst_objects.setCurrentRow(selected_idx)
                     self.is_dragging_object = True 
             
+            if self.current_tool == 5:
+                depth = GL.glReadPixels(px, py, 1, 1, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT)[0][0]
+                
+                if depth < 1.0:
+                    ndc_x = (2.0 * px) / (self.width() * ratio) - 1.0
+                    ndc_y = (2.0 * py) / (self.height() * ratio) - 1.0
+                    ndc_z = 2.0 * depth - 1.0
+
+                    clip_coords = np.array([ndc_x, ndc_y, ndc_z, 1.0])
+                    inv_vp = np.linalg.inv(projection @ view)
+                    world_coords = inv_vp @ clip_coords
+                    
+                    if world_coords[3] != 0.0:
+                        world_coords /= world_coords[3]
+                        self.window().move_agents_to(world_coords[0], world_coords[1], world_coords[2])
+
             GL.glClearColor(0.15, 0.15, 0.15, 1.0)
             self.doneCurrent()
             self.update()
